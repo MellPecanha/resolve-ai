@@ -1,6 +1,9 @@
 import express from "express";
+
 import { authRoutes } from "./routes/auth.routes.js";
 import { occurrenceRoutes } from "./routes/occurrence.routes.js";
+import { dashboardRoutes } from './routes/dashboard.routes.js';
+
 import { errorHandler } from "./middlewares/error.middleware.js";
 
 const app = express();
@@ -15,6 +18,7 @@ app.get("/", (req, res) => {
 
 app.use("/auth", authRoutes);
 app.use("/occurrences", occurrenceRoutes);
+app.use("/dashboard", dashboardRoutes);
 
 app.use(errorHandler);
 
