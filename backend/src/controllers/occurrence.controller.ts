@@ -2,6 +2,7 @@ import type { Request, Response } from "express";
 
 import {
   createOccurrenceSchema,
+  listOccurrencesSchema,
   updatePrioritySchema,
   assignResponsibleSchema,
   updateStatusSchema,
@@ -46,13 +47,16 @@ export async function list(
   req: Request,
   res: Response,
 ) {
-  const occurrences =
-    await listOccurrences(
-      req.user!.id,
-      req.user!.role,
-    );
+  const filters =
+    listOccurrencesSchema.parse(req.query);
 
-  return res.json(occurrences);
+  const result = await listOccurrences(
+    req.user!.id,
+    req.user!.role,
+    filters,
+  );
+
+  return res.json(result);
 }
 
 export async function findById(
@@ -215,6 +219,7 @@ export async function addComment(
     await createComment(
       occurrenceId,
       req.user!.id,
+      req.user!.role,
       data.content,
     );
 

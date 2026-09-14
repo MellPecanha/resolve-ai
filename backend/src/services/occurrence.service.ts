@@ -5,6 +5,7 @@ import type {
   UpdatePriorityDTO,
   UpdateSolutionDTO,
   UpdateStatusDTO,
+  ListOccurrencesDTO,
 } from "../dtos/occurrence.dto.js";
 
 import { AppError } from "../errors/AppError.js";
@@ -15,7 +16,7 @@ export async function createOccurrence(
   data: CreateOccurrenceDTO,
   requesterId: number,
 ) {
-  const occurrence = await db.orm.public.Occurrence.create({
+  return db.orm.public.Occurrence.create({
     title: data.title,
     description: data.description,
     category: data.category,
@@ -23,26 +24,68 @@ export async function createOccurrence(
     imageUrl: data.imageUrl,
     requesterId,
   });
-
-  return occurrence;
 }
 
 export async function listOccurrences(
   userId: number,
   role: UserRole,
+  filters: ListOccurrencesDTO,
 ) {
-  if (role === "GESTOR") {
-    return db.orm.public.Occurrence
-      .orderBy((occurrence) => occurrence.createdAt.desc())
-      .all();
+  const {
+    category,
+    status,
+    priority,
+    page,
+    limit,
+  } = filters;
+
+  let query = db.orm.public.Occurrence;
+
+  if (role === "SOLICITANTE") {
+    query = query.where({
+      requesterId: userId,
+    });
   }
 
-  return db.orm.public.Occurrence
-    .where({
-      requesterId: userId,
-    })
-    .orderBy((occurrence) => occurrence.createdAt.desc())
+  if (category) {
+    query = query.where({
+      category,
+    });
+  }
+
+  if (status) {
+    query = query.where({
+      status,
+    });
+  }
+
+  if (priority) {
+    query = query.where({
+      priority,
+    });
+  }
+
+  const allOccurrences = await query.all();
+  const total = allOccurrences.length;
+
+  const occurrences = await query
+    .orderBy([
+      (occurrence) => occurrence.createdAt.desc(),
+      (occurrence) => occurrence.id.desc(),
+    ])
+    .limit(limit)
+    .offset((page - 1) * limit)
     .all();
+
+  return {
+    data: occurrences,
+    pagination: {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+    },
+  };
 }
 
 export async function findOccurrenceById(
@@ -128,6 +171,13 @@ export async function assignResponsible(
     );
   }
 
+  if (responsible.role !== "GESTOR") {
+    throw new AppError(
+      "O responsável deve ser um gestor",
+      400,
+    );
+  }
+
   return db.orm.public.Occurrence
     .where({ id: occurrenceId })
     .update({
@@ -205,19 +255,14 @@ export async function updateSolution(
 export async function createComment(
   occurrenceId: number,
   authorId: number,
+  role: UserRole,
   content: string,
 ) {
-  const occurrence =
-    await db.orm.public.Occurrence
-      .where({ id: occurrenceId })
-      .first();
-
-  if (!occurrence) {
-    throw new AppError(
-      "Ocorrência não encontrada",
-      404,
-    );
-  }
+  await findOccurrenceById(
+    occurrenceId,
+    authorId,
+    role,
+  );
 
   return db.orm.public.Comment.create({
     content,
@@ -299,11 +344,6 @@ export async function createRating(
       .where({ id: occurrenceId })
       .first();
 
-  const existingRating =
-    await db.orm.public.Rating
-      .where({ occurrenceId })
-      .first();
-
   if (!occurrence) {
     throw new AppError(
       "Ocorrência não encontrada",
@@ -314,14 +354,21 @@ export async function createRating(
   if (occurrence.requesterId !== userId) {
     throw new AppError(
       "Somente o solicitante pode avaliar a ocorrência",
+      403,
     );
   }
 
   if (occurrence.status !== "RESOLVIDA") {
     throw new AppError(
       "A ocorrência precisa estar resolvida",
+      400,
     );
   }
+
+  const existingRating =
+    await db.orm.public.Rating
+      .where({ occurrenceId })
+      .first();
 
   if (existingRating) {
     throw new AppError(

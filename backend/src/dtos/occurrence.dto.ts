@@ -26,7 +26,7 @@ export type UpdatePriorityDTO = z.infer<
 >;
 
 export const assignResponsibleSchema = z.object({
-  responsibleId: z.number().int().positive(),
+  responsibleId: z.coerce.number().int().positive(),
 });
 
 export type AssignResponsibleDTO = z.infer<
@@ -71,4 +71,44 @@ export const createRatingSchema = z.object({
 
 export type CreateRatingDTO = z.infer<
   typeof createRatingSchema
+>;
+
+export const listOccurrencesSchema = z.object({
+  category: z.string().min(1).optional(),
+
+  status: z
+    .enum([
+      "ABERTA",
+      "EM_ANALISE",
+      "EM_ATENDIMENTO",
+      "RESOLVIDA",
+      "CANCELADA",
+    ])
+    .optional(),
+
+  priority: z
+    .enum([
+      "BAIXA",
+      "MEDIA",
+      "ALTA",
+      "URGENTE",
+    ])
+    .optional(),
+
+  page: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .default(1),
+
+  limit: z.coerce
+    .number()
+    .int()
+    .min(1)
+    .max(50)
+    .default(10),
+});
+
+export type ListOccurrencesDTO = z.infer<
+  typeof listOccurrencesSchema
 >;
