@@ -1,0 +1,575 @@
+import request from "supertest";
+import { beforeAll, describe, expect, it } from "vitest";
+import { app } from "../app.js";
+import { db } from "../prisma/db.js";
+import {
+  createTestOccurrence,
+  createTestUser,
+  loginAs,
+} from "./helpers.js";
+
+describe("Occurrences", () => {
+  let solicitante1: Awaited<ReturnType<typeof createTestUser>>;
+  let solicitante2: Awaited<ReturnType<typeof createTestUser>>;
+  let gestor1: Awaited<ReturnType<typeof createTestUser>>;
+  let gestor2: Awaited<ReturnType<typeof createTestUser>>;
+
+  let solicitanteToken: string;
+  let solicitante2Token: string;
+  let gestorToken: string;
+  let gestor2Token: string;
+
+  beforeAll(async () => {
+    const suffix = `${Date.now()}-${Math.random()}`;
+
+    solicitante1 = await createTestUser({
+      name: "Solicitante 1",
+      email: `solicitante1-${suffix}@test.com`,
+    });
+
+    solicitante2 = await createTestUser({
+      name: "Solicitante 2",
+      email: `solicitante2-${suffix}@test.com`,
+    });
+
+    gestor1 = await createTestUser({
+      name: "Gestor 1",
+      email: `gestor1-${suffix}@test.com`,
+      role: "GESTOR",
+    });
+
+    gestor2 = await createTestUser({
+      name: "Gestor 2",
+      email: `gestor2-${suffix}@test.com`,
+      role: "GESTOR",
+    });
+
+    solicitanteToken = await loginAs(solicitante1.email);
+    solicitante2Token = await loginAs(solicitante2.email);
+    gestorToken = await loginAs(gestor1.email);
+    gestor2Token = await loginAs(gestor2.email);
+  });
+
+  describe("criação", () => {
+    it("deve permitir que um solicitante crie uma ocorrência", async () => {
+      const response = await request(app)
+        .post("/occurrences")
+        .set("Authorization", `Bearer ${solicitanteToken}`)
+        .send({
+          title: "Poste apagado",
+          description: "O poste está apagado durante a noite.",
+          category: "Iluminação",
+          location: "Rua Principal, 100",
+        });
+
+      expect(response.status).toBe(201);
+
+      expect(response.body).toHaveProperty("id");
+      expect(response.body.title).toBe("Poste apagado");
+      expect(response.body.description).toBe(
+        "O poste está apagado durante a noite.",
+      );
+      expect(response.body.category).toBe("Iluminação");
+      expect(response.body.location).toBe("Rua Principal, 100");
+      expect(response.body.requesterId).toBe(solicitante1.id);
+    });
+
+    it("não deve permitir criar ocorrência sem autenticação", async () => {
+      const response = await request(app)
+        .post("/occurrences")
+        .send({
+          title: "Poste apagado",
+          description: "O poste está apagado.",
+          category: "Iluminação",
+          location: "Rua Principal",
+        });
+
+      expect(response.status).toBe(401);
+    });
+
+    it("deve rejeitar dados inválidos", async () => {
+      const response = await request(app)
+        .post("/occurrences")
+        .set("Authorization", `Bearer ${solicitanteToken}`)
+        .send({
+          title: "A",
+          description: "B",
+          category: "I",
+          location: "R",
+        });
+
+      expect(response.status).toBe(400);
+    });
+  });
+
+  describe("acesso", () => {
+    it("deve permitir que o solicitante visualize sua própria ocorrência", async () => {
+      const occurrence = await createTestOccurrence(solicitante1.id);
+
+      const response = await request(app)
+        .get(`/occurrences/${occurrence.id}`)
+        .set("Authorization", `Bearer ${solicitanteToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.id).toBe(occurrence.id);
+    });
+
+    it("não deve permitir que um solicitante visualize ocorrência de outro solicitante", async () => {
+      const occurrence = await createTestOccurrence(solicitante2.id);
+
+      const response = await request(app)
+        .get(`/occurrences/${occurrence.id}`)
+        .set("Authorization", `Bearer ${solicitanteToken}`);
+
+      expect(response.status).toBe(403);
+    });
+
+    it("deve permitir que o gestor visualize ocorrência de qualquer solicitante", async () => {
+      const occurrence = await createTestOccurrence(solicitante2.id);
+
+      const response = await request(app)
+        .get(`/occurrences/${occurrence.id}`)
+        .set("Authorization", `Bearer ${gestorToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body.id).toBe(occurrence.id);
+    });
+  });
+
+  describe("listagem", () => {
+    it("deve retornar somente ocorrências do solicitante", async () => {
+      const ownOccurrence = await createTestOccurrence(
+        solicitante1.id,
+      );
+
+      await createTestOccurrence(solicitante2.id);
+
+      const response = await request(app)
+        .get("/occurrences")
+        .set("Authorization", `Bearer ${solicitanteToken}`);
+
+      expect(response.status).toBe(200);
+
+      expect(
+        response.body.data.every(
+          (item: { requesterId: number }) =>
+            item.requesterId === solicitante1.id,
+        ),
+      ).toBe(true);
+
+      expect(
+        response.body.data.some(
+          (item: { id: number }) =>
+            item.id === ownOccurrence.id,
+        ),
+      ).toBe(true);
+    });
+
+    it("deve retornar ocorrências de todos os solicitantes para o gestor", async () => {
+      await createTestOccurrence(solicitante1.id);
+      await createTestOccurrence(solicitante2.id);
+
+      const response = await request(app)
+        .get("/occurrences")
+        .set("Authorization", `Bearer ${gestorToken}`);
+
+      expect(response.status).toBe(200);
+
+      const requesterIds = response.body.data.map(
+        (item: { requesterId: number }) => item.requesterId,
+      );
+
+      expect(requesterIds).toContain(solicitante1.id);
+      expect(requesterIds).toContain(solicitante2.id);
+    });
+
+    it("deve filtrar por prioridade", async () => {
+      const occurrence = await createTestOccurrence(solicitante1.id);
+
+      await db.orm.public.Occurrence
+        .where({ id: occurrence.id })
+        .update({
+          priority: "ALTA",
+        });
+
+      const response = await request(app)
+        .get("/occurrences?priority=ALTA")
+        .set("Authorization", `Bearer ${gestorToken}`);
+
+      expect(response.status).toBe(200);
+
+      expect(
+        response.body.data.every(
+          (item: { priority: string }) => item.priority === "ALTA",
+        ),
+      ).toBe(true);
+    });
+
+    it("deve filtrar por status", async () => {
+      const occurrence = await createTestOccurrence(solicitante1.id);
+
+      await db.orm.public.Occurrence
+        .where({ id: occurrence.id })
+        .update({
+          status: "EM_ANALISE",
+        });
+
+      const response = await request(app)
+        .get("/occurrences?status=EM_ANALISE")
+        .set("Authorization", `Bearer ${gestorToken}`);
+
+      expect(response.status).toBe(200);
+
+      expect(
+        response.body.data.every(
+          (item: { status: string }) => item.status === "EM_ANALISE",
+        ),
+      ).toBe(true);
+    });
+  });
+
+  describe("prioridade", () => {
+    it("deve permitir que o gestor altere a prioridade", async () => {
+      const occurrence = await createTestOccurrence(solicitante1.id);
+
+      const response = await request(app)
+        .patch(`/occurrences/${occurrence.id}/priority`)
+        .set("Authorization", `Bearer ${gestorToken}`)
+        .send({
+          priority: "URGENTE",
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.priority).toBe("URGENTE");
+    });
+
+    it("não deve permitir que solicitante altere prioridade", async () => {
+      const occurrence = await createTestOccurrence(solicitante1.id);
+
+      const response = await request(app)
+        .patch(`/occurrences/${occurrence.id}/priority`)
+        .set("Authorization", `Bearer ${solicitanteToken}`)
+        .send({
+          priority: "URGENTE",
+        });
+
+      expect(response.status).toBe(403);
+    });
+  });
+
+  describe("responsável", () => {
+    it("deve permitir atribuir um gestor como responsável", async () => {
+      const occurrence = await createTestOccurrence(solicitante1.id);
+
+      const response = await request(app)
+        .patch(`/occurrences/${occurrence.id}/responsible`)
+        .set("Authorization", `Bearer ${gestorToken}`)
+        .send({
+          responsibleId: gestor2.id,
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.responsibleId).toBe(gestor2.id);
+    });
+
+    it("não deve permitir atribuir um solicitante como responsável", async () => {
+      const occurrence = await createTestOccurrence(solicitante1.id);
+
+      const response = await request(app)
+        .patch(`/occurrences/${occurrence.id}/responsible`)
+        .set("Authorization", `Bearer ${gestorToken}`)
+        .send({
+          responsibleId: solicitante2.id,
+        });
+
+      expect(response.status).toBe(400);
+    });
+
+    it("não deve permitir que solicitante atribua responsável", async () => {
+      const occurrence = await createTestOccurrence(solicitante1.id);
+
+      const response = await request(app)
+        .patch(`/occurrences/${occurrence.id}/responsible`)
+        .set("Authorization", `Bearer ${solicitanteToken}`)
+        .send({
+          responsibleId: gestor2.id,
+        });
+
+      expect(response.status).toBe(403);
+    });
+  });
+
+  describe("status e histórico", () => {
+    it("deve permitir que gestor altere o status", async () => {
+      const occurrence = await createTestOccurrence(solicitante1.id);
+
+      const response = await request(app)
+        .patch(`/occurrences/${occurrence.id}/status`)
+        .set("Authorization", `Bearer ${gestorToken}`)
+        .send({
+          status: "EM_ANALISE",
+          observation: "Ocorrência encaminhada para análise.",
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.status).toBe("EM_ANALISE");
+    });
+
+    it("não deve permitir que solicitante altere o status", async () => {
+      const occurrence = await createTestOccurrence(solicitante1.id);
+
+      const response = await request(app)
+        .patch(`/occurrences/${occurrence.id}/status`)
+        .set("Authorization", `Bearer ${solicitanteToken}`)
+        .send({
+          status: "EM_ANALISE",
+        });
+
+      expect(response.status).toBe(403);
+    });
+
+    it("deve criar histórico ao alterar o status", async () => {
+      const occurrence = await createTestOccurrence(solicitante1.id);
+
+      await request(app)
+        .patch(`/occurrences/${occurrence.id}/status`)
+        .set("Authorization", `Bearer ${gestorToken}`)
+        .send({
+          status: "EM_ANALISE",
+          observation: "Início da análise.",
+        });
+
+      const response = await request(app)
+        .get(`/occurrences/${occurrence.id}/history`)
+        .set("Authorization", `Bearer ${gestorToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveLength(1);
+
+      expect(response.body[0].previousStatus).toBe("ABERTA");
+      expect(response.body[0].newStatus).toBe("EM_ANALISE");
+      expect(response.body[0].changedById).toBe(gestor1.id);
+      expect(response.body[0].observation).toBe("Início da análise.");
+    });
+
+    it("não deve criar histórico quando o status não muda", async () => {
+      const occurrence = await createTestOccurrence(solicitante1.id);
+
+      const response = await request(app)
+        .patch(`/occurrences/${occurrence.id}/status`)
+        .set("Authorization", `Bearer ${gestorToken}`)
+        .send({
+          status: "ABERTA",
+        });
+
+      expect(response.status).toBe(400);
+
+      const history = await db.orm.public.OccurrenceStatusHistory
+        .where({
+          occurrenceId: occurrence.id,
+        })
+        .all();
+
+      expect(history).toHaveLength(0);
+    });
+  });
+
+  describe("comentários", () => {
+    it("deve permitir solicitante comentar na própria ocorrência", async () => {
+      const occurrence = await createTestOccurrence(solicitante1.id);
+
+      const response = await request(app)
+        .post(`/occurrences/${occurrence.id}/comments`)
+        .set("Authorization", `Bearer ${solicitanteToken}`)
+        .send({
+          content: "Alguma atualização sobre o problema?",
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body.content).toBe(
+        "Alguma atualização sobre o problema?",
+      );
+      expect(response.body.authorId).toBe(solicitante1.id);
+    });
+
+    it("não deve permitir solicitante comentar em ocorrência de outra pessoa", async () => {
+      const occurrence = await createTestOccurrence(solicitante2.id);
+
+      const response = await request(app)
+        .post(`/occurrences/${occurrence.id}/comments`)
+        .set("Authorization", `Bearer ${solicitanteToken}`)
+        .send({
+          content: "Comentário indevido.",
+        });
+
+      expect(response.status).toBe(403);
+    });
+
+    it("deve permitir gestor comentar em qualquer ocorrência", async () => {
+      const occurrence = await createTestOccurrence(solicitante2.id);
+
+      const response = await request(app)
+        .post(`/occurrences/${occurrence.id}/comments`)
+        .set("Authorization", `Bearer ${gestorToken}`)
+        .send({
+          content: "Comentário do gestor.",
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body.authorId).toBe(gestor1.id);
+    });
+
+    it("deve listar comentários de uma ocorrência", async () => {
+      const occurrence = await createTestOccurrence(solicitante1.id);
+
+      await request(app)
+        .post(`/occurrences/${occurrence.id}/comments`)
+        .set("Authorization", `Bearer ${solicitanteToken}`)
+        .send({
+          content: "Primeiro comentário.",
+        });
+
+      const response = await request(app)
+        .get(`/occurrences/${occurrence.id}/comments`)
+        .set("Authorization", `Bearer ${solicitanteToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveLength(1);
+      expect(response.body[0].content).toBe("Primeiro comentário.");
+    });
+  });
+
+  describe("solução", () => {
+    it("deve permitir gestor registrar solução", async () => {
+      const occurrence = await createTestOccurrence(solicitante1.id);
+
+      const response = await request(app)
+        .patch(`/occurrences/${occurrence.id}/solution`)
+        .set("Authorization", `Bearer ${gestorToken}`)
+        .send({
+          solution: "O poste foi reparado.",
+        });
+
+      expect(response.status).toBe(200);
+      expect(response.body.solution).toBe("O poste foi reparado.");
+    });
+
+    it("não deve permitir solicitante registrar solução", async () => {
+      const occurrence = await createTestOccurrence(solicitante1.id);
+
+      const response = await request(app)
+        .patch(`/occurrences/${occurrence.id}/solution`)
+        .set("Authorization", `Bearer ${solicitanteToken}`)
+        .send({
+          solution: "Tentei resolver.",
+        });
+
+      expect(response.status).toBe(403);
+    });
+  });
+
+  describe("avaliação", () => {
+    it("deve permitir solicitante avaliar ocorrência resolvida", async () => {
+      const occurrence = await createTestOccurrence(solicitante1.id);
+
+      await db.orm.public.Occurrence
+        .where({ id: occurrence.id })
+        .update({
+          status: "RESOLVIDA",
+        });
+
+      const response = await request(app)
+        .post(`/occurrences/${occurrence.id}/rating`)
+        .set("Authorization", `Bearer ${solicitanteToken}`)
+        .send({
+          score: 5,
+          comment: "Problema resolvido rapidamente.",
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body.score).toBe(5);
+      expect(response.body.comment).toBe(
+        "Problema resolvido rapidamente.",
+      );
+    });
+
+    it("não deve permitir avaliação antes da resolução", async () => {
+      const occurrence = await createTestOccurrence(solicitante1.id);
+
+      const response = await request(app)
+        .post(`/occurrences/${occurrence.id}/rating`)
+        .set("Authorization", `Bearer ${solicitanteToken}`)
+        .send({
+          score: 5,
+        });
+
+      expect(response.status).toBe(400);
+    });
+
+    it("não deve permitir outro usuário avaliar a ocorrência", async () => {
+      const occurrence = await createTestOccurrence(solicitante1.id);
+
+      await db.orm.public.Occurrence
+        .where({ id: occurrence.id })
+        .update({
+          status: "RESOLVIDA",
+        });
+
+      const response = await request(app)
+        .post(`/occurrences/${occurrence.id}/rating`)
+        .set("Authorization", `Bearer ${solicitante2Token}`)
+        .send({
+          score: 5,
+        });
+
+      expect(response.status).toBe(403);
+    });
+
+    it("não deve permitir duas avaliações para a mesma ocorrência", async () => {
+      const occurrence = await createTestOccurrence(solicitante1.id);
+
+      await db.orm.public.Occurrence
+        .where({ id: occurrence.id })
+        .update({
+          status: "RESOLVIDA",
+        });
+
+      const first = await request(app)
+        .post(`/occurrences/${occurrence.id}/rating`)
+        .set("Authorization", `Bearer ${solicitanteToken}`)
+        .send({
+          score: 5,
+        });
+
+      expect(first.status).toBe(201);
+
+      const second = await request(app)
+        .post(`/occurrences/${occurrence.id}/rating`)
+        .set("Authorization", `Bearer ${solicitanteToken}`)
+        .send({
+          score: 4,
+        });
+
+      expect(second.status).toBe(409);
+    });
+
+    it("deve rejeitar score fora do intervalo de 1 a 5", async () => {
+      const occurrence = await createTestOccurrence(solicitante1.id);
+
+      await db.orm.public.Occurrence
+        .where({ id: occurrence.id })
+        .update({
+          status: "RESOLVIDA",
+        });
+
+      const response = await request(app)
+        .post(`/occurrences/${occurrence.id}/rating`)
+        .set("Authorization", `Bearer ${solicitanteToken}`)
+        .send({
+          score: 6,
+        });
+
+      expect(response.status).toBe(400);
+    });
+  });
+});
