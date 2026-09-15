@@ -36,7 +36,12 @@ function AppLayout() {
       <header className="app-header">
         <div className="app-brand">
           <div className="brand-mark">
-            ✓
+            <img
+              className="brand-mark-image"
+              src="/favicon.svg"
+              alt=""
+              aria-hidden="true"
+            />
           </div>
 
           <span>

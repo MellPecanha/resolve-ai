@@ -35,4 +35,33 @@ export interface OccurrenceHistory {
   changedById: number;
   observation: string | null;
   createdAt: string;
+  changedBy?: {
+    id: number;
+    name: string;
+    role: "SOLICITANTE" | "GESTOR";
+  };
+}
+
+export interface OccurrenceComment {
+  id: number;
+  content: string;
+  occurrenceId: number;
+  authorId: number;
+  createdAt: string;
+  updatedAt: string;
+  author: {
+    id: number;
+    name: string;
+    role: "SOLICITANTE" | "GESTOR";
+  };
+}
+
+export interface OccurrenceRating {
+  id: number;
+  score: number;
+  comment: string | null;
+  occurrenceId: number;
+  userId: number;
+  createdAt: string;
+  updatedAt: string;
 }

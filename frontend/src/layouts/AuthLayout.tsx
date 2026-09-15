@@ -12,7 +12,12 @@ function AuthLayout({ children }: AuthLayoutProps) {
       <section className="auth-container">
         <div className="auth-brand">
           <div className="brand-mark">
-            ✓
+            <img
+              className="brand-mark-image"
+              src="/favicon.svg"
+              alt=""
+              aria-hidden="true"
+            />
           </div>
 
           <span>

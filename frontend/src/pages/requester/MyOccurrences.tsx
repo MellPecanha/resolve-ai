@@ -75,10 +75,12 @@ function MyOccurrences() {
     async function loadOccurrences() {
       try {
         setError("");
+        const response = await listOccurrences({
+          page: 1,
+          limit: 50,
+        });
 
-        const data = await listOccurrences();
-
-        setOccurrences(data);
+        setOccurrences(response.data);
       } catch (error) {
         console.error("Erro ao carregar ocorrências:", error);
 

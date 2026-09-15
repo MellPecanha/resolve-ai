@@ -17,6 +17,9 @@ import Dashboard from "./pages/manager/Dashboard";
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleRoute from "./components/RoleRoute";
 
+import ManagerOccurrences from "./pages/manager/Occurrence";
+import ManagerOccurrenceDetails from "./pages/manager/OccurrenceDetails";
+
 import AppLayout from "./layouts/AppLayout";
 
 
@@ -73,13 +76,12 @@ function App() {
 
               <Route
                 path="/ocorrencias"
-                element={
-                  <div>
-                    <h1>
-                      Ocorrências
-                    </h1>
-                  </div>
-                }
+                element={<ManagerOccurrences />}
+              />
+
+              <Route
+                path="/ocorrencias/:id/gestao"
+                element={<ManagerOccurrenceDetails />}
               />
             </Route>
           </Route>
