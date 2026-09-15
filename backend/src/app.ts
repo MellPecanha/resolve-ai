@@ -6,7 +6,13 @@ import { dashboardRoutes } from './routes/dashboard.routes.js';
 
 import { errorHandler } from "./middlewares/error.middleware.js";
 
+import cors from "cors";
+
 const app = express();
+
+app.use(cors({
+  origin: "http://localhost:5173",
+}));
 
 app.use(express.json());
 
