@@ -26,3 +26,13 @@ export interface Occurrence {
   createdAt: string;
   updatedAt: string;
 }
+
+export interface OccurrenceHistory {
+  id: number;
+  occurrenceId: number;
+  previousStatus: OccurrenceStatus | null;
+  newStatus: OccurrenceStatus;
+  changedById: number;
+  observation: string | null;
+  createdAt: string;
+}

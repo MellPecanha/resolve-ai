@@ -1,6 +1,6 @@
 import {
   useState,
-  type FormEvent,
+  type SyntheticEvent,
 } from "react";
 import {
   Link,
@@ -40,7 +40,7 @@ function Login() {
     );
 
   async function handleSubmit(
-    event: FormEvent<HTMLFormElement>,
+    event: SyntheticEvent<HTMLFormElement>,
   ) {
     event.preventDefault();
 
@@ -57,25 +57,6 @@ function Login() {
         result.token,
         result.user,
       );
-
-      const state = location.state as
-        | {
-          from?: {
-            pathname?: string;
-          };
-        }
-        | null;
-
-      const previousPath =
-        state?.from?.pathname;
-
-      if (previousPath) {
-        navigate(previousPath, {
-          replace: true,
-        });
-
-        return;
-      }
 
       if (
         result.user.role ===

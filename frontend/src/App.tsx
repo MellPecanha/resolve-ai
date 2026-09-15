@@ -8,11 +8,17 @@ import {
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 
+import NotFound from "./pages/NotFound";
 import MyOccurrences from "./pages/requester/MyOccurrences";
+import NewOccurrence from "./pages/requester/NewOccurrence";
+import OccurrenceDetails from "./pages/requester/OccurrenceDetails";
 import Dashboard from "./pages/manager/Dashboard";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleRoute from "./components/RoleRoute";
+
+import AppLayout from "./layouts/AppLayout";
+
 
 function App() {
   return (
@@ -29,26 +35,53 @@ function App() {
         />
 
         <Route element={<ProtectedRoute />}>
-          <Route
-            element={
-              <RoleRoute allowedRole="SOLICITANTE" />
-            }
-          >
+          <Route element={<AppLayout />}>
             <Route
-              path="/minhas-ocorrencias"
-              element={<MyOccurrences />}
-            />
-          </Route>
+              element={
+                <RoleRoute
+                  allowedRole="SOLICITANTE"
+                />
+              }
+            >
+              <Route
+                path="/minhas-ocorrencias"
+                element={<MyOccurrences />}
+              />
 
-          <Route
-            element={
-              <RoleRoute allowedRole="GESTOR" />
-            }
-          >
+              <Route
+                path="/ocorrencias/:id"
+                element={<OccurrenceDetails />}
+              />
+
+              <Route
+                path="/ocorrencias/nova"
+                element={<NewOccurrence />}
+              />
+            </Route>
+
             <Route
-              path="/dashboard"
-              element={<Dashboard />}
-            />
+              element={
+                <RoleRoute
+                  allowedRole="GESTOR"
+                />
+              }
+            >
+              <Route
+                path="/dashboard"
+                element={<Dashboard />}
+              />
+
+              <Route
+                path="/ocorrencias"
+                element={
+                  <div>
+                    <h1>
+                      Ocorrências
+                    </h1>
+                  </div>
+                }
+              />
+            </Route>
           </Route>
         </Route>
 
@@ -64,12 +97,7 @@ function App() {
 
         <Route
           path="*"
-          element={
-            <Navigate
-              to="/"
-              replace
-            />
-          }
+          element={<NotFound />}
         />
       </Routes>
     </BrowserRouter>
