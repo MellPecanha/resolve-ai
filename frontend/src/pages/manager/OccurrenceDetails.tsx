@@ -6,6 +6,7 @@ import {
   Clock3,
   MessageCircle,
   Save,
+  Star,
   UserRound,
 } from "lucide-react";
 import { useNavigate, useParams } from "react-router-dom";
@@ -16,6 +17,7 @@ import {
   getOccurrence,
   getOccurrenceComments,
   getOccurrenceHistory,
+  getOccurrenceRating,
   updateOccurrencePriority,
   updateOccurrenceSolution,
   updateOccurrenceStatus,
@@ -29,6 +31,7 @@ import type {
   OccurrenceHistory,
   OccurrencePriority,
   OccurrenceStatus,
+  OccurrenceRating,
 } from "../../types/occurrence";
 
 import type { Manager } from "../../types/user";
@@ -103,6 +106,9 @@ function OccurrenceDetails() {
   const [comments, setComments] =
     useState<OccurrenceComment[]>([]);
 
+  const [rating, setRating] =
+    useState<OccurrenceRating | null>(null);
+
   const [managers, setManagers] =
     useState<Manager[]>([]);
 
@@ -152,17 +158,20 @@ function OccurrenceDetails() {
           historyData,
           commentsData,
           managersData,
+          ratingData,
         ] = await Promise.all([
           getOccurrence(occurrenceId),
           getOccurrenceHistory(occurrenceId),
           getOccurrenceComments(occurrenceId),
           listManagers(),
+          getOccurrenceRating(occurrenceId),
         ]);
 
         setOccurrence(occurrenceData);
         setHistory(historyData);
         setComments(commentsData);
         setManagers(managersData);
+        setRating(ratingData);
 
         setStatus(occurrenceData.status);
         setPriority(occurrenceData.priority);
@@ -328,16 +337,15 @@ function OccurrenceDetails() {
       setError("");
       setSuccess("");
 
-      const comment =
-        await addOccurrenceComment(
-          occurrence.id,
-          newComment.trim(),
-        );
+      await addOccurrenceComment(
+        occurrence.id,
+        newComment.trim(),
+      );
 
-      setComments((current) => [
-        ...current,
-        comment,
-      ]);
+      const updatedComments =
+        await getOccurrenceComments(occurrence.id);
+
+      setComments(updatedComments);
 
       setNewComment("");
 
@@ -722,6 +730,59 @@ function OccurrenceDetails() {
             )}
           </div>
 
+          {occurrence.status === "RESOLVIDA" && (
+            <div className="details-card manager-rating-card">
+              <div className="details-card-header">
+                <div className="details-card-title-with-icon">
+                  <Star size={18} />
+                  <h2>Avaliação do solicitante</h2>
+                </div>
+              </div>
+
+              {rating ? (
+                <div className="manager-rating">
+                  <div className="manager-rating-stars">
+                    {[1, 2, 3, 4, 5].map((value) => (
+                      <Star
+                        key={value}
+                        size={24}
+                        className={
+                          value <= rating.score
+                            ? "manager-rating-star-active"
+                            : "manager-rating-star"
+                        }
+                        fill={
+                          value <= rating.score
+                            ? "currentColor"
+                            : "none"
+                        }
+                      />
+                    ))}
+
+                    <span className="manager-rating-score">
+                      {rating.score}/5
+                    </span>
+                  </div>
+
+                  {rating.comment && (
+                    <p className="details-description">
+                      "{rating.comment}"
+                    </p>
+                  )}
+
+                  <span className="manager-rating-date">
+                    Avaliado em {formatDate(rating.createdAt)}
+                  </span>
+                </div>
+              ) : (
+                <p className="details-description">
+                  O solicitante ainda não avaliou esta ocorrência.
+                </p>
+              )}
+            </div>
+          )}
+
+
           <div className="details-card">
             <div className="details-card-header">
               <h2>
@@ -736,37 +797,32 @@ function OccurrenceDetails() {
                   Ainda não há comentários.
                 </p>
               ) : (
-                comments.map((comment) => (
-                  <div
-                    className="comment-item"
-                    key={comment.id}
-                  >
-                    <div className="comment-avatar">
-                      {comment.author?.name
-                        .charAt(0)
-                        .toUpperCase() ?? "?"}
-                    </div>
+                comments.map((comment) => {
+                  const authorName = comment.author?.name ?? "Usuário";
 
-                    <div className="comment-content">
-                      <div className="comment-header">
-                        <strong>
-                          {comment.author?.name ??
-                            "Usuário"}
-                        </strong>
-
-                        <span>
-                          {formatDate(
-                            comment.createdAt,
-                          )}
-                        </span>
+                  return (
+                    <div
+                      className="comment-item"
+                      key={comment.id}
+                    >
+                      <div className="comment-avatar">
+                        {authorName.charAt(0).toUpperCase()}
                       </div>
 
-                      <p>
-                        {comment.content}
-                      </p>
+                      <div className="comment-content">
+                        <div className="comment-header">
+                          <strong>{authorName}</strong>
+
+                          <span>
+                            {formatDate(comment.createdAt)}
+                          </span>
+                        </div>
+
+                        <p>{comment.content}</p>
+                      </div>
                     </div>
-                  </div>
-                ))
+                  );
+                })
               )}
             </div>
 

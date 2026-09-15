@@ -333,6 +333,38 @@ export async function listStatusHistory(
     .all();
 }
 
+export async function getRating(
+  occurrenceId: number,
+  userId: number,
+  role: UserRole,
+) {
+  const occurrence =
+    await db.orm.public.Occurrence
+      .where({ id: occurrenceId })
+      .first();
+
+  if (!occurrence) {
+    throw new AppError(
+      "Ocorrência não encontrada",
+      404,
+    );
+  }
+
+  if (
+    role === "SOLICITANTE" &&
+    occurrence.requesterId !== userId
+  ) {
+    throw new AppError(
+      "Você não tem acesso a esta avaliação",
+      403,
+    );
+  }
+
+  return db.orm.public.Rating
+    .where({ occurrenceId })
+    .first();
+}
+
 export async function createRating(
   occurrenceId: number,
   userId: number,
@@ -383,4 +415,56 @@ export async function createRating(
     score,
     comment,
   });
+}
+
+export async function updateRating(
+  occurrenceId: number,
+  userId: number,
+  score: number,
+  comment?: string,
+) {
+  const occurrence =
+    await db.orm.public.Occurrence
+      .where({ id: occurrenceId })
+      .first();
+
+  if (!occurrence) {
+    throw new AppError(
+      "Ocorrência não encontrada",
+      404,
+    );
+  }
+
+  if (occurrence.requesterId !== userId) {
+    throw new AppError(
+      "Somente o solicitante pode alterar a avaliação",
+      403,
+    );
+  }
+
+  if (occurrence.status !== "RESOLVIDA") {
+    throw new AppError(
+      "A ocorrência precisa estar resolvida",
+      400,
+    );
+  }
+
+  const existingRating =
+    await db.orm.public.Rating
+      .where({ occurrenceId })
+      .first();
+
+  if (!existingRating) {
+    throw new AppError(
+      "Esta ocorrência ainda não foi avaliada",
+      404,
+    );
+  }
+
+  return db.orm.public.Rating
+    .where({ id: existingRating.id })
+    .update({
+      score,
+      comment,
+    });
 }

@@ -9,6 +9,7 @@ import {
   updateSolutionSchema,
   createCommentSchema,
   createRatingSchema,
+  updateRatingSchema,
 } from "../dtos/occurrence.dto.js";
 
 import {
@@ -23,6 +24,8 @@ import {
   listComments,
   listStatusHistory,
   createRating,
+  getRating,
+  updateRating,
 } from "../services/occurrence.service.js";
 
 import { AppError } from "../errors/AppError.js";
@@ -274,6 +277,30 @@ export async function getHistory(
   return res.json(history);
 }
 
+export async function getRatingByOccurrence(
+  req: Request,
+  res: Response,
+) {
+  const occurrenceId =
+    Number(req.params.id);
+
+  if (Number.isNaN(occurrenceId)) {
+    throw new AppError(
+      "ID inválido",
+      400,
+    );
+  }
+
+  const rating =
+    await getRating(
+      occurrenceId,
+      req.user!.id,
+      req.user!.role,
+    );
+
+  return res.json(rating);
+}
+
 export async function rate(
   req: Request,
   res: Response,
@@ -302,4 +329,34 @@ export async function rate(
     );
 
   return res.status(201).json(rating);
+}
+
+export async function updateOccurrenceRating(
+  req: Request,
+  res: Response,
+) {
+  const occurrenceId =
+    Number(req.params.id);
+
+  if (Number.isNaN(occurrenceId)) {
+    throw new AppError(
+      "ID inválido",
+      400,
+    );
+  }
+
+  const data =
+    updateRatingSchema.parse(
+      req.body,
+    );
+
+  const rating =
+    await updateRating(
+      occurrenceId,
+      req.user!.id,
+      data.score,
+      data.comment,
+    );
+
+  return res.json(rating);
 }

@@ -12,6 +12,8 @@ import {
   getComments,
   getHistory,
   rate,
+  getRatingByOccurrence,
+  updateOccurrenceRating,
 } from "../controllers/occurrence.controller.js";
 
 import { authenticate } from "../middlewares/auth.middleware.js";
@@ -89,5 +91,15 @@ occurrenceRoutes.post(
   authenticate,
   asyncHandler(rate),
 );
+occurrenceRoutes.get(
+  "/:id/rating",
+  authenticate,
+  asyncHandler(getRatingByOccurrence),
+);
 
+occurrenceRoutes.patch(
+  "/:id/rating",
+  authenticate,
+  asyncHandler(updateOccurrenceRating),
+);
 export { occurrenceRoutes };

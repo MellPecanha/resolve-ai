@@ -1,4 +1,4 @@
-# Resolve Aí
+# <img src="frontend/public/favicon.svg" alt="Logo Resolve Aí" width="30" height="30" /> Resolve Aí
 
 > Plataforma Full Stack para registro, acompanhamento e gestão de ocorrências.
 

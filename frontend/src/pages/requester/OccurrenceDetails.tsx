@@ -17,12 +17,15 @@ import {
   getOccurrence,
   getOccurrenceComments,
   getOccurrenceHistory,
+  getOccurrenceRating,
+  updateOccurrenceRating,
 } from "../../services/occurrence.service";
 
 import type {
   Occurrence,
   OccurrenceComment,
   OccurrenceHistory,
+  OccurrenceRating,
   OccurrenceStatus,
 } from "../../types/occurrence";
 
@@ -92,23 +95,37 @@ function OccurrenceDetails() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const [occurrence, setOccurrence] = useState<Occurrence | null>(null);
-  const [history, setHistory] = useState<OccurrenceHistory[]>([]);
-  const [comments, setComments] = useState<OccurrenceComment[]>([]);
+  const [occurrence, setOccurrence] =
+    useState<Occurrence | null>(null);
+  const [history, setHistory] = useState<
+    OccurrenceHistory[]
+  >([]);
+  const [comments, setComments] = useState<
+    OccurrenceComment[]
+  >([]);
 
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
 
   const [comment, setComment] = useState("");
-  const [sendingComment, setSendingComment] = useState(false);
-  const [commentError, setCommentError] = useState("");
-  const [commentSuccess, setCommentSuccess] = useState("");
+  const [sendingComment, setSendingComment] =
+    useState(false);
+  const [commentError, setCommentError] =
+    useState("");
+  const [commentSuccess, setCommentSuccess] =
+    useState("");
 
   const [rating, setRating] = useState(0);
-  const [ratingComment, setRatingComment] = useState("");
-  const [sendingRating, setSendingRating] = useState(false);
-  const [ratingError, setRatingError] = useState("");
-  const [ratingSuccess, setRatingSuccess] = useState("");
+  const [ratingComment, setRatingComment] =
+    useState("");
+  const [existingRating, setExistingRating] =
+    useState<OccurrenceRating | null>(null);
+  const [sendingRating, setSendingRating] =
+    useState(false);
+  const [ratingError, setRatingError] =
+    useState("");
+  const [ratingSuccess, setRatingSuccess] =
+    useState("");
 
   useEffect(() => {
     async function loadOccurrence() {
@@ -123,18 +140,36 @@ function OccurrenceDetails() {
 
         const occurrenceId = Number(id);
 
-        const [occurrenceData, historyData, commentsData] =
-          await Promise.all([
-            getOccurrence(occurrenceId),
-            getOccurrenceHistory(occurrenceId),
-            getOccurrenceComments(occurrenceId),
-          ]);
+        const [
+          occurrenceData,
+          historyData,
+          commentsData,
+          ratingData,
+        ] = await Promise.all([
+          getOccurrence(occurrenceId),
+          getOccurrenceHistory(occurrenceId),
+          getOccurrenceComments(occurrenceId),
+          getOccurrenceRating(occurrenceId),
+        ]);
 
         setOccurrence(occurrenceData);
         setHistory(historyData);
         setComments(commentsData);
+
+        setExistingRating(ratingData);
+
+        if (ratingData) {
+          setRating(ratingData.score);
+          setRatingComment(ratingData.comment ?? "");
+        } else {
+          setRating(0);
+          setRatingComment("");
+        }
       } catch (error) {
-        console.error("Erro ao carregar ocorrência:", error);
+        console.error(
+          "Erro ao carregar ocorrência:",
+          error,
+        );
 
         if (
           error &&
@@ -157,7 +192,9 @@ function OccurrenceDetails() {
             "Não foi possível carregar a ocorrência.",
           );
         } else {
-          setError("Não foi possível carregar a ocorrência.");
+          setError(
+            "Não foi possível carregar a ocorrência.",
+          );
         }
       } finally {
         setLoading(false);
@@ -167,7 +204,9 @@ function OccurrenceDetails() {
     loadOccurrence();
   }, [id]);
 
-  async function handleAddComment(event: FormEvent<HTMLFormElement>) {
+  async function handleAddComment(
+    event: FormEvent<HTMLFormElement>,
+  ) {
     event.preventDefault();
 
     if (!id || !comment.trim()) {
@@ -179,20 +218,29 @@ function OccurrenceDetails() {
       setCommentError("");
       setCommentSuccess("");
 
-      const newComment = await addOccurrenceComment(
+      await addOccurrenceComment(
         Number(id),
         comment.trim(),
       );
 
-      setComments((current) => [...current, newComment]);
+      const updatedComments =
+        await getOccurrenceComments(Number(id));
+
+      setComments(updatedComments);
       setComment("");
-      setCommentSuccess("Comentário adicionado com sucesso.");
+
+      setCommentSuccess(
+        "Comentário adicionado com sucesso.",
+      );
 
       setTimeout(() => {
         setCommentSuccess("");
       }, 3000);
     } catch (error) {
-      console.error("Erro ao adicionar comentário:", error);
+      console.error(
+        "Erro ao adicionar comentário:",
+        error,
+      );
 
       if (
         error &&
@@ -214,18 +262,24 @@ function OccurrenceDetails() {
           "Não foi possível adicionar o comentário.",
         );
       } else {
-        setCommentError("Não foi possível adicionar o comentário.");
+        setCommentError(
+          "Não foi possível adicionar o comentário.",
+        );
       }
     } finally {
       setSendingComment(false);
     }
   }
 
-  async function handleRating(event: FormEvent<HTMLFormElement>) {
+  async function handleRating(
+    event: FormEvent<HTMLFormElement>,
+  ) {
     event.preventDefault();
 
     if (!id || rating === 0) {
-      setRatingError("Selecione uma nota antes de enviar.");
+      setRatingError(
+        "Selecione uma nota antes de enviar.",
+      );
       return;
     }
 
@@ -234,16 +288,32 @@ function OccurrenceDetails() {
       setRatingError("");
       setRatingSuccess("");
 
-      await createOccurrenceRating(
-        Number(id),
-        rating,
-        ratingComment.trim() || undefined,
-      );
+      const ratingData = existingRating
+        ? await updateOccurrenceRating(
+          Number(id),
+          rating,
+          ratingComment.trim() || undefined,
+        )
+        : await createOccurrenceRating(
+          Number(id),
+          rating,
+          ratingComment.trim() || undefined,
+        );
 
-      setRatingSuccess("Avaliação enviada com sucesso.");
-      setRatingComment("");
+      setExistingRating(ratingData);
+      setRating(ratingData.score);
+      setRatingComment(ratingData.comment ?? "");
+
+      setRatingSuccess(
+        existingRating
+          ? "Avaliação atualizada com sucesso."
+          : "Avaliação enviada com sucesso.",
+      );
     } catch (error) {
-      console.error("Erro ao avaliar ocorrência:", error);
+      console.error(
+        "Erro ao avaliar ocorrência:",
+        error,
+      );
 
       if (
         error &&
@@ -265,7 +335,9 @@ function OccurrenceDetails() {
           "Não foi possível enviar sua avaliação.",
         );
       } else {
-        setRatingError("Não foi possível enviar sua avaliação.");
+        setRatingError(
+          "Não foi possível enviar sua avaliação.",
+        );
       }
     } finally {
       setSendingRating(false);
@@ -280,7 +352,9 @@ function OccurrenceDetails() {
 
           <div>
             <strong>Carregando ocorrência</strong>
-            <p>Aguarde enquanto buscamos os detalhes.</p>
+            <p>
+              Aguarde enquanto buscamos os detalhes.
+            </p>
           </div>
         </div>
       </section>
@@ -293,7 +367,9 @@ function OccurrenceDetails() {
         <button
           type="button"
           className="back-button"
-          onClick={() => navigate("/minhas-ocorrencias")}
+          onClick={() =>
+            navigate("/minhas-ocorrencias")
+          }
         >
           <ArrowLeft size={16} />
           Voltar para minhas ocorrências
@@ -307,7 +383,10 @@ function OccurrenceDetails() {
               Não foi possível carregar a ocorrência
             </strong>
 
-            <p>{error || "Ocorrência não encontrada."}</p>
+            <p>
+              {error ||
+                "Ocorrência não encontrada."}
+            </p>
           </div>
         </div>
       </section>
@@ -322,7 +401,9 @@ function OccurrenceDetails() {
       <button
         type="button"
         className="back-button"
-        onClick={() => navigate("/minhas-ocorrencias")}
+        onClick={() =>
+          navigate("/minhas-ocorrencias")
+        }
       >
         <ArrowLeft size={16} />
         Minhas ocorrências
@@ -342,7 +423,9 @@ function OccurrenceDetails() {
           </div>
         </div>
 
-        <span className={`badge ${status.className}`}>
+        <span
+          className={`badge ${status.className}`}
+        >
           <StatusIcon size={14} />
           {status.label}
         </span>
@@ -386,36 +469,55 @@ function OccurrenceDetails() {
                 <MessageCircle size={20} />
 
                 <p>
-                  Ainda não há comentários nesta ocorrência.
+                  Ainda não há comentários nesta
+                  ocorrência.
                 </p>
               </div>
             ) : (
               <div className="comments-list">
-                {comments.map((item) => (
-                  <div className="comment-item" key={item.id}>
-                    <div className="comment-avatar">
-                      {item.author.name.charAt(0).toUpperCase()}
-                    </div>
+                {comments.map((item) => {
+                  const authorName =
+                    item.author?.name ??
+                    "Usuário";
 
-                    <div className="comment-content">
-                      <div className="comment-header">
-                        <strong>{item.author.name}</strong>
+                  const authorRole =
+                    item.author?.role;
 
-                        <span>
-                          {formatShortDate(item.createdAt)}
-                        </span>
+                  return (
+                    <div
+                      className="comment-item"
+                      key={item.id}
+                    >
+                      <div className="comment-avatar">
+                        {authorName
+                          .charAt(0)
+                          .toUpperCase()}
                       </div>
 
-                      <p>{item.content}</p>
+                      <div className="comment-content">
+                        <div className="comment-header">
+                          <strong>
+                            {authorName}
+                          </strong>
 
-                      <span className="comment-role">
-                        {item.author.role === "GESTOR"
-                          ? "Gestor"
-                          : "Solicitante"}
-                      </span>
+                          <span>
+                            {formatShortDate(
+                              item.createdAt,
+                            )}
+                          </span>
+                        </div>
+
+                        <p>{item.content}</p>
+
+                        <span className="comment-role">
+                          {authorRole === "GESTOR"
+                            ? "Gestor"
+                            : "Solicitante"}
+                        </span>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             )}
 
@@ -453,7 +555,8 @@ function OccurrenceDetails() {
                   type="submit"
                   className="button button-primary"
                   disabled={
-                    sendingComment || !comment.trim()
+                    sendingComment ||
+                    !comment.trim()
                   }
                 >
                   <Send size={15} />
@@ -481,7 +584,8 @@ function OccurrenceDetails() {
                   const itemStatus =
                     statusConfig[item.newStatus];
 
-                  const HistoryIcon = itemStatus.icon;
+                  const HistoryIcon =
+                    itemStatus.icon;
 
                   return (
                     <div
@@ -499,15 +603,19 @@ function OccurrenceDetails() {
                           </strong>
 
                           <span>
-                            {formatDate(item.createdAt)}
+                            {formatDate(
+                              item.createdAt,
+                            )}
                           </span>
                         </div>
 
                         {item.previousStatus && (
                           <span className="history-transition">
-                            {statusConfig[
-                              item.previousStatus
-                            ].label}
+                            {
+                              statusConfig[
+                                item.previousStatus
+                              ].label
+                            }
                             {" → "}
                             {itemStatus.label}
                           </span>
@@ -523,7 +631,9 @@ function OccurrenceDetails() {
                         )}
 
                         {item.observation && (
-                          <p>{item.observation}</p>
+                          <p>
+                            {item.observation}
+                          </p>
                         )}
                       </div>
                     </div>
@@ -555,12 +665,18 @@ function OccurrenceDetails() {
               <div className="details-card-header">
                 <div className="details-card-title-with-icon">
                   <Star size={18} />
-                  <h2>Avalie a resolução</h2>
+                  <h2>
+                    {existingRating
+                      ? "Sua avaliação"
+                      : "Avalie a resolução"}
+                  </h2>
                 </div>
               </div>
 
               <p className="details-description">
-                Como você avalia a resolução desta ocorrência?
+                {existingRating
+                  ? "Você pode alterar sua avaliação a qualquer momento."
+                  : "Como você avalia a resolução desta ocorrência?"}
               </p>
 
               <form
@@ -568,28 +684,34 @@ function OccurrenceDetails() {
                 onSubmit={handleRating}
               >
                 <div className="rating-stars">
-                  {[1, 2, 3, 4, 5].map((value) => (
-                    <button
-                      key={value}
-                      type="button"
-                      className={`rating-star ${value <= rating
+                  {[1, 2, 3, 4, 5].map(
+                    (value) => (
+                      <button
+                        key={value}
+                        type="button"
+                        className={`rating-star ${value <= rating
                           ? "rating-star-active"
                           : ""
-                        }`}
-                      onClick={() => setRating(value)}
-                      aria-label={`Avaliar com ${value} ${value === 1 ? "estrela" : "estrelas"
-                        }`}
-                    >
-                      <Star
-                        size={30}
-                        fill={
-                          value <= rating
-                            ? "currentColor"
-                            : "none"
+                          }`}
+                        onClick={() =>
+                          setRating(value)
                         }
-                      />
-                    </button>
-                  ))}
+                        aria-label={`Avaliar com ${value} ${value === 1
+                          ? "estrela"
+                          : "estrelas"
+                          }`}
+                      >
+                        <Star
+                          size={30}
+                          fill={
+                            value <= rating
+                              ? "currentColor"
+                              : "none"
+                          }
+                        />
+                      </button>
+                    ),
+                  )}
                 </div>
 
                 <div className="rating-label">
@@ -605,7 +727,9 @@ function OccurrenceDetails() {
                   className="comment-input"
                   value={ratingComment}
                   onChange={(event) =>
-                    setRatingComment(event.target.value)
+                    setRatingComment(
+                      event.target.value,
+                    )
                   }
                   placeholder="Conte, se quiser, como foi a resolução..."
                   rows={3}
@@ -629,12 +753,17 @@ function OccurrenceDetails() {
                     type="submit"
                     className="button button-primary"
                     disabled={
-                      sendingRating || rating === 0
+                      sendingRating ||
+                      rating === 0
                     }
                   >
                     {sendingRating
-                      ? "Enviando..."
-                      : "Enviar avaliação"}
+                      ? existingRating
+                        ? "Atualizando..."
+                        : "Enviando..."
+                      : existingRating
+                        ? "Atualizar avaliação"
+                        : "Enviar avaliação"}
                   </button>
                 </div>
               </form>
@@ -659,7 +788,11 @@ function OccurrenceDetails() {
                 <span>Prioridade</span>
 
                 <strong>
-                  {priorityLabels[occurrence.priority]}
+                  {
+                    priorityLabels[
+                    occurrence.priority
+                    ]
+                  }
                 </strong>
               </div>
 
@@ -677,7 +810,9 @@ function OccurrenceDetails() {
                 <span>Registrada em</span>
 
                 <strong>
-                  {formatDate(occurrence.createdAt)}
+                  {formatDate(
+                    occurrence.createdAt,
+                  )}
                 </strong>
               </div>
 
@@ -685,7 +820,9 @@ function OccurrenceDetails() {
                 <span>Última atualização</span>
 
                 <strong>
-                  {formatDate(occurrence.updatedAt)}
+                  {formatDate(
+                    occurrence.updatedAt,
+                  )}
                 </strong>
               </div>
             </div>

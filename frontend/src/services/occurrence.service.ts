@@ -93,12 +93,38 @@ export async function addOccurrenceComment(
   return response.data;
 }
 
+export async function getOccurrenceRating(
+  id: number,
+): Promise<OccurrenceRating | null> {
+  const response = await api.get<OccurrenceRating | null>(
+    `/occurrences/${id}/rating`,
+  );
+
+  return response.data;
+}
+
 export async function createOccurrenceRating(
   id: number,
   score: number,
   comment?: string,
 ): Promise<OccurrenceRating> {
   const response = await api.post<OccurrenceRating>(
+    `/occurrences/${id}/rating`,
+    {
+      score,
+      comment,
+    },
+  );
+
+  return response.data;
+}
+
+export async function updateOccurrenceRating(
+  id: number,
+  score: number,
+  comment?: string,
+): Promise<OccurrenceRating> {
+  const response = await api.patch<OccurrenceRating>(
     `/occurrences/${id}/rating`,
     {
       score,

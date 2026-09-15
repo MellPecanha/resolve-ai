@@ -2488,3 +2488,39 @@ select {
     width: 100%;
   }
 }
+
+.manager-rating-card {
+  border-color: rgba(228, 124, 74, 0.25);
+}
+
+.manager-rating {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.manager-rating-stars {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.manager-rating-star {
+  color: var(--color-muted);
+}
+
+.manager-rating-star-active {
+  color: var(--color-primary);
+}
+
+.manager-rating-score {
+  margin-left: 8px;
+  color: var(--color-text);
+  font-size: 14px;
+  font-weight: 600;
+}
+
+.manager-rating-date {
+  color: var(--color-muted);
+  font-size: 12px;
+}

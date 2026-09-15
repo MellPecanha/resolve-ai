@@ -572,4 +572,136 @@ describe("Occurrences", () => {
       expect(response.status).toBe(400);
     });
   });
+
+  it("deve permitir consultar a avaliação do solicitante", async () => {
+    const occurrence = await createTestOccurrence(
+      solicitante1.id,
+    );
+
+    await db.orm.public.Occurrence
+      .where({ id: occurrence.id })
+      .update({
+        status: "RESOLVIDA",
+      });
+
+    await request(app)
+      .post(`/occurrences/${occurrence.id}/rating`)
+      .set(
+        "Authorization",
+        `Bearer ${solicitanteToken}`,
+      )
+      .send({
+        score: 5,
+        comment: "Excelente resolução.",
+      });
+
+    const response = await request(app)
+      .get(`/occurrences/${occurrence.id}/rating`)
+      .set(
+        "Authorization",
+        `Bearer ${solicitanteToken}`,
+      );
+
+    expect(response.status).toBe(200);
+    expect(response.body.score).toBe(5);
+    expect(response.body.comment).toBe(
+      "Excelente resolução.",
+    );
+  });
+
+  it("deve retornar null quando a ocorrência ainda não possui avaliação", async () => {
+    const occurrence = await createTestOccurrence(
+      solicitante1.id,
+    );
+
+    await db.orm.public.Occurrence
+      .where({ id: occurrence.id })
+      .update({
+        status: "RESOLVIDA",
+      });
+
+    const response = await request(app)
+      .get(`/occurrences/${occurrence.id}/rating`)
+      .set(
+        "Authorization",
+        `Bearer ${solicitanteToken}`,
+      );
+
+    expect(response.status).toBe(200);
+    expect(response.body).toBeNull();
+  });
+
+  it("deve permitir solicitante atualizar sua avaliação", async () => {
+    const occurrence = await createTestOccurrence(
+      solicitante1.id,
+    );
+
+    await db.orm.public.Occurrence
+      .where({ id: occurrence.id })
+      .update({
+        status: "RESOLVIDA",
+      });
+
+    await request(app)
+      .post(`/occurrences/${occurrence.id}/rating`)
+      .set(
+        "Authorization",
+        `Bearer ${solicitanteToken}`,
+      )
+      .send({
+        score: 5,
+        comment: "Muito bom.",
+      });
+
+    const response = await request(app)
+      .patch(`/occurrences/${occurrence.id}/rating`)
+      .set(
+        "Authorization",
+        `Bearer ${solicitanteToken}`,
+      )
+      .send({
+        score: 3,
+        comment: "Pode melhorar.",
+      });
+
+    expect(response.status).toBe(200);
+    expect(response.body.score).toBe(3);
+    expect(response.body.comment).toBe(
+      "Pode melhorar.",
+    );
+  });
+
+  it("não deve permitir outro usuário alterar a avaliação", async () => {
+    const occurrence = await createTestOccurrence(
+      solicitante1.id,
+    );
+
+    await db.orm.public.Occurrence
+      .where({ id: occurrence.id })
+      .update({
+        status: "RESOLVIDA",
+      });
+
+    await request(app)
+      .post(`/occurrences/${occurrence.id}/rating`)
+      .set(
+        "Authorization",
+        `Bearer ${solicitanteToken}`,
+      )
+      .send({
+        score: 5,
+      });
+
+    const response = await request(app)
+      .patch(`/occurrences/${occurrence.id}/rating`)
+      .set(
+        "Authorization",
+        `Bearer ${solicitante2Token}`,
+      )
+      .send({
+        score: 1,
+      });
+
+    expect(response.status).toBe(403);
+  });
 });

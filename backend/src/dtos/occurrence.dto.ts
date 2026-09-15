@@ -73,6 +73,15 @@ export type CreateRatingDTO = z.infer<
   typeof createRatingSchema
 >;
 
+export const updateRatingSchema = z.object({
+  score: z.number().int().min(1).max(5),
+  comment: z.string().optional(),
+});
+
+export type UpdateRatingDTO = z.infer<
+  typeof updateRatingSchema
+>;
+
 export const listOccurrencesSchema = z.object({
   category: z.string().min(1).optional(),
 
