@@ -32,7 +32,7 @@ async function main() {
     TRUNCATE TABLE
       "rating",
       "comment",
-      "occurrenceStatusHistory",
+      "occurrenceHistory",
       "occurrence",
       "user"
     RESTART IDENTITY CASCADE
@@ -67,7 +67,6 @@ async function main() {
   });
 
   const gestor3 = await db.orm.public.User.create({
-
     name: "Mariana Gestora",
     email: "mariana.gestora@resolveai.com",
     password,
@@ -314,6 +313,10 @@ async function main() {
     },
   ];
 
+  // =========================================================
+  // CRIA OCORRÊNCIAS
+  // =========================================================
+
   const createdOccurrences = [];
 
   for (let index = 0; index < occurrences.length; index++) {
@@ -324,22 +327,21 @@ async function main() {
         ? gestores[index % gestores.length]
         : undefined;
 
-    const occurrence = await db.orm.public.Occurrence.create({
-
-      title: occurrenceData.title,
-      description: occurrenceData.description,
-      category: occurrenceData.category,
-      location: occurrenceData.location,
-      priority: occurrenceData.priority,
-      status: occurrenceData.status,
-      requesterId: occurrenceData.requesterId,
-      responsibleId: responsible?.id,
-      solution:
-        occurrenceData.status === "RESOLVIDA"
-          ? "Solicitação atendida pela equipe responsável."
-          : undefined,
-
-    });
+    const occurrence =
+      await db.orm.public.Occurrence.create({
+        title: occurrenceData.title,
+        description: occurrenceData.description,
+        category: occurrenceData.category,
+        location: occurrenceData.location,
+        priority: occurrenceData.priority,
+        status: occurrenceData.status,
+        requesterId: occurrenceData.requesterId,
+        responsibleId: responsible?.id,
+        solution:
+          occurrenceData.status === "RESOLVIDA"
+            ? "Solicitação atendida pela equipe responsável."
+            : undefined,
+      });
 
     createdOccurrences.push(occurrence);
   }
@@ -347,32 +349,71 @@ async function main() {
   console.log("📋 18 ocorrências criadas.");
 
   // =========================================================
-  // HISTÓRICO DE STATUS
+  // HISTÓRICO
   // =========================================================
 
-  for (let index = 0; index < createdOccurrences.length; index++) {
+  for (
+    let index = 0;
+    index < createdOccurrences.length;
+    index++
+  ) {
     const occurrence = createdOccurrences[index];
     const original = occurrences[index];
+    const gestor = gestores[index % gestores.length];
+
+    // ---------------------------------------------------------
+    // HISTÓRICO DE PRIORIDADE
+    // ---------------------------------------------------------
+
+    if (original.priority !== "BAIXA") {
+      await db.orm.public.OccurrenceHistory.create({
+        type: "PRIORIDADE",
+        occurrenceId: occurrence.id,
+        previousPriority: "BAIXA",
+        newPriority: original.priority,
+        changedById: gestor.id,
+        observation:
+          "Prioridade definida pela equipe responsável após análise da ocorrência.",
+      });
+    }
+
+    // ---------------------------------------------------------
+    // HISTÓRICO DE RESPONSÁVEL
+    // ---------------------------------------------------------
+
+    if (occurrence.responsibleId) {
+      await db.orm.public.OccurrenceHistory.create({
+        type: "RESPONSAVEL",
+        occurrenceId: occurrence.id,
+        previousResponsibleId: null,
+        newResponsibleId: occurrence.responsibleId,
+        changedById: gestor.id,
+        observation:
+          "Ocorrência atribuída a um gestor responsável.",
+      });
+    }
+
+    // ---------------------------------------------------------
+    // HISTÓRICO DE STATUS
+    // ---------------------------------------------------------
 
     if (original.status === "ABERTA") {
       continue;
     }
 
-    const gestor = gestores[index % gestores.length];
-
     if (
       original.status === "EM_ANALISE" ||
       original.status === "EM_ATENDIMENTO" ||
-      original.status === "RESOLVIDA" ||
-      original.status === "CANCELADA"
+      original.status === "RESOLVIDA"
     ) {
-      await db.orm.public.OccurrenceStatusHistory.create({
-
+      await db.orm.public.OccurrenceHistory.create({
+        type: "STATUS",
         occurrenceId: occurrence.id,
         previousStatus: "ABERTA",
         newStatus: "EM_ANALISE",
         changedById: gestor.id,
-        observation: "Ocorrência recebida e encaminhada para análise.",
+        observation:
+          "Ocorrência recebida e encaminhada para análise.",
       });
     }
 
@@ -380,46 +421,56 @@ async function main() {
       original.status === "EM_ATENDIMENTO" ||
       original.status === "RESOLVIDA"
     ) {
-      await db.orm.public.OccurrenceStatusHistory.create({
-
+      await db.orm.public.OccurrenceHistory.create({
+        type: "STATUS",
         occurrenceId: occurrence.id,
         previousStatus: "EM_ANALISE",
         newStatus: "EM_ATENDIMENTO",
         changedById: gestor.id,
-        observation: "Equipe responsável iniciou o atendimento.",
+        observation:
+          "Equipe responsável iniciou o atendimento.",
       });
     }
 
     if (original.status === "RESOLVIDA") {
-      await db.orm.public.OccurrenceStatusHistory.create({
+      await db.orm.public.OccurrenceHistory.create({
+        type: "STATUS",
         occurrenceId: occurrence.id,
         previousStatus: "EM_ATENDIMENTO",
         newStatus: "RESOLVIDA",
         changedById: gestor.id,
-        observation: "Atendimento concluído com sucesso.",
+        observation:
+          "Atendimento concluído com sucesso.",
       });
     }
 
     if (original.status === "CANCELADA") {
-      await db.orm.public.OccurrenceStatusHistory.create({
+      await db.orm.public.OccurrenceHistory.create({
+        type: "STATUS",
         occurrenceId: occurrence.id,
         previousStatus: "ABERTA",
         newStatus: "CANCELADA",
         changedById: gestor.id,
-        observation: "Ocorrência cancelada após análise da solicitação.",
+        observation:
+          "Ocorrência cancelada após análise da solicitação.",
       });
     }
   }
 
-  console.log("🕒 Histórico de status criado.");
+  console.log("🕒 Histórico de ocorrências criado.");
 
   // =========================================================
   // COMENTÁRIOS
   // =========================================================
 
-  for (let index = 0; index < createdOccurrences.length; index++) {
+  for (
+    let index = 0;
+    index < createdOccurrences.length;
+    index++
+  ) {
     const occurrence = createdOccurrences[index];
-    const requester = solicitantes[index % solicitantes.length];
+    const requester =
+      solicitantes[index % solicitantes.length];
     const gestor = gestores[index % gestores.length];
 
     await db.orm.public.Comment.create({
@@ -445,7 +496,11 @@ async function main() {
   // AVALIAÇÕES
   // =========================================================
 
-  for (let index = 0; index < createdOccurrences.length; index++) {
+  for (
+    let index = 0;
+    index < createdOccurrences.length;
+    index++
+  ) {
     const occurrence = createdOccurrences[index];
     const original = occurrences[index];
 
@@ -453,7 +508,8 @@ async function main() {
       continue;
     }
 
-    const requester = solicitantes[index % solicitantes.length];
+    const requester =
+      solicitantes[index % solicitantes.length];
 
     await db.orm.public.Rating.create({
       occurrenceId: occurrence.id,
@@ -475,6 +531,7 @@ async function main() {
   console.log("\n========================================");
   console.log("✅ SEED FINALIZADO COM SUCESSO");
   console.log("========================================");
+
   console.log("\n👩‍💼 GESTORES:");
   console.log("ana.gestora@resolveai.com");
   console.log("carlos.gestor@resolveai.com");
@@ -495,9 +552,12 @@ async function main() {
   console.log("- 5 solicitantes");
   console.log("- 18 ocorrências");
   console.log("- históricos de status");
+  console.log("- históricos de prioridade");
+  console.log("- históricos de responsáveis");
   console.log("- comentários");
   console.log("- soluções");
   console.log("- avaliações");
+
   console.log("========================================\n");
 }
 

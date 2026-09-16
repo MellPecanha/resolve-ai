@@ -63,7 +63,6 @@ describe("Occurrences", () => {
         });
 
       expect(response.status).toBe(201);
-
       expect(response.body).toHaveProperty("id");
       expect(response.body.title).toBe("Poste apagado");
       expect(response.body.description).toBe(
@@ -222,7 +221,8 @@ describe("Occurrences", () => {
 
       expect(
         response.body.data.every(
-          (item: { status: string }) => item.status === "EM_ANALISE",
+          (item: { status: string }) =>
+            item.status === "EM_ANALISE",
         ),
       ).toBe(true);
     });
@@ -230,7 +230,9 @@ describe("Occurrences", () => {
 
   describe("prioridade", () => {
     it("deve permitir que o gestor altere a prioridade", async () => {
-      const occurrence = await createTestOccurrence(solicitante1.id);
+      const occurrence = await createTestOccurrence(
+        solicitante1.id,
+      );
 
       const response = await request(app)
         .patch(`/occurrences/${occurrence.id}/priority`)
@@ -243,8 +245,65 @@ describe("Occurrences", () => {
       expect(response.body.priority).toBe("URGENTE");
     });
 
+    it("deve criar histórico ao alterar a prioridade", async () => {
+      const occurrence = await createTestOccurrence(
+        solicitante1.id,
+      );
+
+      const response = await request(app)
+        .patch(`/occurrences/${occurrence.id}/priority`)
+        .set("Authorization", `Bearer ${gestorToken}`)
+        .send({
+          priority: "ALTA",
+        });
+
+      expect(response.status).toBe(200);
+
+      const history =
+        await db.orm.public.OccurrenceHistory
+          .where({
+            occurrenceId: occurrence.id,
+            type: "PRIORIDADE",
+          })
+          .all();
+
+      expect(history).toHaveLength(1);
+      expect(history[0].previousPriority).toBe("MEDIA");
+      expect(history[0].newPriority).toBe("ALTA");
+      expect(history[0].changedById).toBe(gestor1.id);
+      expect(history[0].previousStatus).toBeNull();
+      expect(history[0].newStatus).toBeNull();
+    });
+
+    it("não deve criar histórico quando a prioridade não muda", async () => {
+      const occurrence = await createTestOccurrence(
+        solicitante1.id,
+      );
+
+      const response = await request(app)
+        .patch(`/occurrences/${occurrence.id}/priority`)
+        .set("Authorization", `Bearer ${gestorToken}`)
+        .send({
+          priority: "MEDIA",
+        });
+
+      expect(response.status).toBe(400);
+
+      const history =
+        await db.orm.public.OccurrenceHistory
+          .where({
+            occurrenceId: occurrence.id,
+            type: "PRIORIDADE",
+          })
+          .all();
+
+      expect(history).toHaveLength(0);
+    });
+
     it("não deve permitir que solicitante altere prioridade", async () => {
-      const occurrence = await createTestOccurrence(solicitante1.id);
+      const occurrence = await createTestOccurrence(
+        solicitante1.id,
+      );
 
       const response = await request(app)
         .patch(`/occurrences/${occurrence.id}/priority`)
@@ -259,7 +318,9 @@ describe("Occurrences", () => {
 
   describe("responsável", () => {
     it("deve permitir atribuir um gestor como responsável", async () => {
-      const occurrence = await createTestOccurrence(solicitante1.id);
+      const occurrence = await createTestOccurrence(
+        solicitante1.id,
+      );
 
       const response = await request(app)
         .patch(`/occurrences/${occurrence.id}/responsible`)
@@ -272,8 +333,114 @@ describe("Occurrences", () => {
       expect(response.body.responsibleId).toBe(gestor2.id);
     });
 
+    it("deve criar histórico ao atribuir um responsável", async () => {
+      const occurrence = await createTestOccurrence(
+        solicitante1.id,
+      );
+
+      const response = await request(app)
+        .patch(`/occurrences/${occurrence.id}/responsible`)
+        .set("Authorization", `Bearer ${gestorToken}`)
+        .send({
+          responsibleId: gestor2.id,
+        });
+
+      expect(response.status).toBe(200);
+
+      const history =
+        await db.orm.public.OccurrenceHistory
+          .where({
+            occurrenceId: occurrence.id,
+            type: "RESPONSAVEL",
+          })
+          .all();
+
+      expect(history).toHaveLength(1);
+      expect(history[0].previousResponsibleId).toBeNull();
+      expect(history[0].newResponsibleId).toBe(gestor2.id);
+      expect(history[0].changedById).toBe(gestor1.id);
+      expect(history[0].previousStatus).toBeNull();
+      expect(history[0].newStatus).toBeNull();
+      expect(history[0].previousPriority).toBeNull();
+      expect(history[0].newPriority).toBeNull();
+    });
+
+    it("não deve criar histórico quando o responsável não muda", async () => {
+      const occurrence = await createTestOccurrence(
+        solicitante1.id,
+      );
+
+      await request(app)
+        .patch(`/occurrences/${occurrence.id}/responsible`)
+        .set("Authorization", `Bearer ${gestorToken}`)
+        .send({
+          responsibleId: gestor2.id,
+        });
+
+      const response = await request(app)
+        .patch(`/occurrences/${occurrence.id}/responsible`)
+        .set("Authorization", `Bearer ${gestorToken}`)
+        .send({
+          responsibleId: gestor2.id,
+        });
+
+      expect(response.status).toBe(400);
+
+      const history =
+        await db.orm.public.OccurrenceHistory
+          .where({
+            occurrenceId: occurrence.id,
+            type: "RESPONSAVEL",
+          })
+          .all();
+
+      expect(history).toHaveLength(1);
+    });
+
+    it("deve registrar a troca de responsável no histórico", async () => {
+      const occurrence = await createTestOccurrence(
+        solicitante1.id,
+      );
+
+      await request(app)
+        .patch(`/occurrences/${occurrence.id}/responsible`)
+        .set("Authorization", `Bearer ${gestorToken}`)
+        .send({
+          responsibleId: gestor1.id,
+        });
+
+      const response = await request(app)
+        .patch(`/occurrences/${occurrence.id}/responsible`)
+        .set("Authorization", `Bearer ${gestor2Token}`)
+        .send({
+          responsibleId: gestor2.id,
+        });
+
+      expect(response.status).toBe(200);
+
+      const history =
+        await db.orm.public.OccurrenceHistory
+          .where({
+            occurrenceId: occurrence.id,
+            type: "RESPONSAVEL",
+          })
+          .all();
+
+      expect(history).toHaveLength(2);
+
+      const lastHistory = history[history.length - 1];
+
+      expect(lastHistory.previousResponsibleId).toBe(
+        gestor1.id,
+      );
+      expect(lastHistory.newResponsibleId).toBe(gestor2.id);
+      expect(lastHistory.changedById).toBe(gestor2.id);
+    });
+
     it("não deve permitir atribuir um solicitante como responsável", async () => {
-      const occurrence = await createTestOccurrence(solicitante1.id);
+      const occurrence = await createTestOccurrence(
+        solicitante1.id,
+      );
 
       const response = await request(app)
         .patch(`/occurrences/${occurrence.id}/responsible`)
@@ -286,7 +453,9 @@ describe("Occurrences", () => {
     });
 
     it("não deve permitir que solicitante atribua responsável", async () => {
-      const occurrence = await createTestOccurrence(solicitante1.id);
+      const occurrence = await createTestOccurrence(
+        solicitante1.id,
+      );
 
       const response = await request(app)
         .patch(`/occurrences/${occurrence.id}/responsible`)
@@ -301,7 +470,9 @@ describe("Occurrences", () => {
 
   describe("status e histórico", () => {
     it("deve permitir que gestor altere o status", async () => {
-      const occurrence = await createTestOccurrence(solicitante1.id);
+      const occurrence = await createTestOccurrence(
+        solicitante1.id,
+      );
 
       const response = await request(app)
         .patch(`/occurrences/${occurrence.id}/status`)
@@ -316,7 +487,9 @@ describe("Occurrences", () => {
     });
 
     it("não deve permitir que solicitante altere o status", async () => {
-      const occurrence = await createTestOccurrence(solicitante1.id);
+      const occurrence = await createTestOccurrence(
+        solicitante1.id,
+      );
 
       const response = await request(app)
         .patch(`/occurrences/${occurrence.id}/status`)
@@ -329,7 +502,9 @@ describe("Occurrences", () => {
     });
 
     it("deve criar histórico ao alterar o status", async () => {
-      const occurrence = await createTestOccurrence(solicitante1.id);
+      const occurrence = await createTestOccurrence(
+        solicitante1.id,
+      );
 
       await request(app)
         .patch(`/occurrences/${occurrence.id}/status`)
@@ -346,14 +521,47 @@ describe("Occurrences", () => {
       expect(response.status).toBe(200);
       expect(response.body).toHaveLength(1);
 
+      expect(response.body[0].type).toBe("STATUS");
       expect(response.body[0].previousStatus).toBe("ABERTA");
       expect(response.body[0].newStatus).toBe("EM_ANALISE");
       expect(response.body[0].changedById).toBe(gestor1.id);
-      expect(response.body[0].observation).toBe("Início da análise.");
+      expect(response.body[0].observation).toBe(
+        "Início da análise.",
+      );
+    });
+
+    it("deve retornar os dados do gestor que alterou o histórico", async () => {
+      const occurrence = await createTestOccurrence(
+        solicitante1.id,
+      );
+
+      await request(app)
+        .patch(`/occurrences/${occurrence.id}/status`)
+        .set("Authorization", `Bearer ${gestorToken}`)
+        .send({
+          status: "EM_ANALISE",
+          observation: "Análise iniciada.",
+        });
+
+      const response = await request(app)
+        .get(`/occurrences/${occurrence.id}/history`)
+        .set("Authorization", `Bearer ${gestorToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveLength(1);
+
+      expect(response.body[0].changedBy).toBeDefined();
+      expect(response.body[0].changedBy.id).toBe(gestor1.id);
+      expect(response.body[0].changedBy.name).toBe(
+        "Gestor 1",
+      );
+      expect(response.body[0].changedBy.role).toBe("GESTOR");
     });
 
     it("não deve criar histórico quando o status não muda", async () => {
-      const occurrence = await createTestOccurrence(solicitante1.id);
+      const occurrence = await createTestOccurrence(
+        solicitante1.id,
+      );
 
       const response = await request(app)
         .patch(`/occurrences/${occurrence.id}/status`)
@@ -364,19 +572,100 @@ describe("Occurrences", () => {
 
       expect(response.status).toBe(400);
 
-      const history = await db.orm.public.OccurrenceStatusHistory
-        .where({
-          occurrenceId: occurrence.id,
-        })
-        .all();
+      const history =
+        await db.orm.public.OccurrenceHistory
+          .where({
+            occurrenceId: occurrence.id,
+            type: "STATUS",
+          })
+          .all();
 
       expect(history).toHaveLength(0);
+    });
+
+    it("deve permitir que o solicitante consulte o histórico da própria ocorrência", async () => {
+      const occurrence = await createTestOccurrence(
+        solicitante1.id,
+      );
+
+      await request(app)
+        .patch(`/occurrences/${occurrence.id}/status`)
+        .set("Authorization", `Bearer ${gestorToken}`)
+        .send({
+          status: "EM_ANALISE",
+          observation: "Ocorrência em análise.",
+        });
+
+      const response = await request(app)
+        .get(`/occurrences/${occurrence.id}/history`)
+        .set("Authorization", `Bearer ${solicitanteToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveLength(1);
+      expect(response.body[0].type).toBe("STATUS");
+    });
+
+    it("não deve permitir que solicitante consulte histórico de ocorrência de outra pessoa", async () => {
+      const occurrence = await createTestOccurrence(
+        solicitante2.id,
+      );
+
+      const response = await request(app)
+        .get(`/occurrences/${occurrence.id}/history`)
+        .set("Authorization", `Bearer ${solicitanteToken}`);
+
+      expect(response.status).toBe(403);
+    });
+
+    it("deve retornar históricos de tipos diferentes", async () => {
+      const occurrence = await createTestOccurrence(
+        solicitante1.id,
+      );
+
+      await request(app)
+        .patch(`/occurrences/${occurrence.id}/priority`)
+        .set("Authorization", `Bearer ${gestorToken}`)
+        .send({
+          priority: "ALTA",
+        });
+
+      await request(app)
+        .patch(`/occurrences/${occurrence.id}/responsible`)
+        .set("Authorization", `Bearer ${gestorToken}`)
+        .send({
+          responsibleId: gestor2.id,
+        });
+
+      await request(app)
+        .patch(`/occurrences/${occurrence.id}/status`)
+        .set("Authorization", `Bearer ${gestorToken}`)
+        .send({
+          status: "EM_ANALISE",
+          observation: "Início da análise.",
+        });
+
+      const response = await request(app)
+        .get(`/occurrences/${occurrence.id}/history`)
+        .set("Authorization", `Bearer ${gestorToken}`);
+
+      expect(response.status).toBe(200);
+      expect(response.body).toHaveLength(3);
+
+      const types = response.body.map(
+        (item: { type: string }) => item.type,
+      );
+
+      expect(types).toContain("PRIORIDADE");
+      expect(types).toContain("RESPONSAVEL");
+      expect(types).toContain("STATUS");
     });
   });
 
   describe("comentários", () => {
     it("deve permitir solicitante comentar na própria ocorrência", async () => {
-      const occurrence = await createTestOccurrence(solicitante1.id);
+      const occurrence = await createTestOccurrence(
+        solicitante1.id,
+      );
 
       const response = await request(app)
         .post(`/occurrences/${occurrence.id}/comments`)
@@ -393,7 +682,9 @@ describe("Occurrences", () => {
     });
 
     it("não deve permitir solicitante comentar em ocorrência de outra pessoa", async () => {
-      const occurrence = await createTestOccurrence(solicitante2.id);
+      const occurrence = await createTestOccurrence(
+        solicitante2.id,
+      );
 
       const response = await request(app)
         .post(`/occurrences/${occurrence.id}/comments`)
@@ -406,7 +697,9 @@ describe("Occurrences", () => {
     });
 
     it("deve permitir gestor comentar em qualquer ocorrência", async () => {
-      const occurrence = await createTestOccurrence(solicitante2.id);
+      const occurrence = await createTestOccurrence(
+        solicitante2.id,
+      );
 
       const response = await request(app)
         .post(`/occurrences/${occurrence.id}/comments`)
@@ -420,7 +713,9 @@ describe("Occurrences", () => {
     });
 
     it("deve listar comentários de uma ocorrência", async () => {
-      const occurrence = await createTestOccurrence(solicitante1.id);
+      const occurrence = await createTestOccurrence(
+        solicitante1.id,
+      );
 
       await request(app)
         .post(`/occurrences/${occurrence.id}/comments`)
@@ -435,13 +730,17 @@ describe("Occurrences", () => {
 
       expect(response.status).toBe(200);
       expect(response.body).toHaveLength(1);
-      expect(response.body[0].content).toBe("Primeiro comentário.");
+      expect(response.body[0].content).toBe(
+        "Primeiro comentário.",
+      );
     });
   });
 
   describe("solução", () => {
     it("deve permitir gestor registrar solução", async () => {
-      const occurrence = await createTestOccurrence(solicitante1.id);
+      const occurrence = await createTestOccurrence(
+        solicitante1.id,
+      );
 
       const response = await request(app)
         .patch(`/occurrences/${occurrence.id}/solution`)
@@ -451,11 +750,15 @@ describe("Occurrences", () => {
         });
 
       expect(response.status).toBe(200);
-      expect(response.body.solution).toBe("O poste foi reparado.");
+      expect(response.body.solution).toBe(
+        "O poste foi reparado.",
+      );
     });
 
     it("não deve permitir solicitante registrar solução", async () => {
-      const occurrence = await createTestOccurrence(solicitante1.id);
+      const occurrence = await createTestOccurrence(
+        solicitante1.id,
+      );
 
       const response = await request(app)
         .patch(`/occurrences/${occurrence.id}/solution`)
@@ -470,7 +773,9 @@ describe("Occurrences", () => {
 
   describe("avaliação", () => {
     it("deve permitir solicitante avaliar ocorrência resolvida", async () => {
-      const occurrence = await createTestOccurrence(solicitante1.id);
+      const occurrence = await createTestOccurrence(
+        solicitante1.id,
+      );
 
       await db.orm.public.Occurrence
         .where({ id: occurrence.id })
@@ -494,7 +799,9 @@ describe("Occurrences", () => {
     });
 
     it("não deve permitir avaliação antes da resolução", async () => {
-      const occurrence = await createTestOccurrence(solicitante1.id);
+      const occurrence = await createTestOccurrence(
+        solicitante1.id,
+      );
 
       const response = await request(app)
         .post(`/occurrences/${occurrence.id}/rating`)
@@ -507,7 +814,9 @@ describe("Occurrences", () => {
     });
 
     it("não deve permitir outro usuário avaliar a ocorrência", async () => {
-      const occurrence = await createTestOccurrence(solicitante1.id);
+      const occurrence = await createTestOccurrence(
+        solicitante1.id,
+      );
 
       await db.orm.public.Occurrence
         .where({ id: occurrence.id })
@@ -526,7 +835,9 @@ describe("Occurrences", () => {
     });
 
     it("não deve permitir duas avaliações para a mesma ocorrência", async () => {
-      const occurrence = await createTestOccurrence(solicitante1.id);
+      const occurrence = await createTestOccurrence(
+        solicitante1.id,
+      );
 
       await db.orm.public.Occurrence
         .where({ id: occurrence.id })
@@ -554,7 +865,9 @@ describe("Occurrences", () => {
     });
 
     it("deve rejeitar score fora do intervalo de 1 a 5", async () => {
-      const occurrence = await createTestOccurrence(solicitante1.id);
+      const occurrence = await createTestOccurrence(
+        solicitante1.id,
+      );
 
       await db.orm.public.Occurrence
         .where({ id: occurrence.id })
@@ -586,10 +899,7 @@ describe("Occurrences", () => {
 
     await request(app)
       .post(`/occurrences/${occurrence.id}/rating`)
-      .set(
-        "Authorization",
-        `Bearer ${solicitanteToken}`,
-      )
+      .set("Authorization", `Bearer ${solicitanteToken}`)
       .send({
         score: 5,
         comment: "Excelente resolução.",
@@ -597,10 +907,7 @@ describe("Occurrences", () => {
 
     const response = await request(app)
       .get(`/occurrences/${occurrence.id}/rating`)
-      .set(
-        "Authorization",
-        `Bearer ${solicitanteToken}`,
-      );
+      .set("Authorization", `Bearer ${solicitanteToken}`);
 
     expect(response.status).toBe(200);
     expect(response.body.score).toBe(5);
@@ -622,10 +929,7 @@ describe("Occurrences", () => {
 
     const response = await request(app)
       .get(`/occurrences/${occurrence.id}/rating`)
-      .set(
-        "Authorization",
-        `Bearer ${solicitanteToken}`,
-      );
+      .set("Authorization", `Bearer ${solicitanteToken}`);
 
     expect(response.status).toBe(200);
     expect(response.body).toBeNull();
@@ -644,10 +948,7 @@ describe("Occurrences", () => {
 
     await request(app)
       .post(`/occurrences/${occurrence.id}/rating`)
-      .set(
-        "Authorization",
-        `Bearer ${solicitanteToken}`,
-      )
+      .set("Authorization", `Bearer ${solicitanteToken}`)
       .send({
         score: 5,
         comment: "Muito bom.",
@@ -655,10 +956,7 @@ describe("Occurrences", () => {
 
     const response = await request(app)
       .patch(`/occurrences/${occurrence.id}/rating`)
-      .set(
-        "Authorization",
-        `Bearer ${solicitanteToken}`,
-      )
+      .set("Authorization", `Bearer ${solicitanteToken}`)
       .send({
         score: 3,
         comment: "Pode melhorar.",
@@ -684,20 +982,14 @@ describe("Occurrences", () => {
 
     await request(app)
       .post(`/occurrences/${occurrence.id}/rating`)
-      .set(
-        "Authorization",
-        `Bearer ${solicitanteToken}`,
-      )
+      .set("Authorization", `Bearer ${solicitanteToken}`)
       .send({
         score: 5,
       });
 
     const response = await request(app)
       .patch(`/occurrences/${occurrence.id}/rating`)
-      .set(
-        "Authorization",
-        `Bearer ${solicitante2Token}`,
-      )
+      .set("Authorization", `Bearer ${solicitante2Token}`)
       .send({
         score: 1,
       });

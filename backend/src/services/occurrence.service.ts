@@ -123,6 +123,7 @@ export async function findOccurrenceById(
 export async function updatePriority(
   occurrenceId: number,
   priority: UpdatePriorityDTO["priority"],
+  changedById: number,
 ) {
   const occurrence =
     await db.orm.public.Occurrence
@@ -136,16 +137,37 @@ export async function updatePriority(
     );
   }
 
-  return db.orm.public.Occurrence
-    .where({ id: occurrenceId })
-    .update({
-      priority,
+  if (occurrence.priority === priority) {
+    throw new AppError(
+      "A ocorrência já está com esta prioridade",
+      400,
+    );
+  }
+
+  return db.transaction(async (tx) => {
+    const updatedOccurrence =
+      await tx.orm.public.Occurrence
+        .where({ id: occurrenceId })
+        .update({
+          priority,
+        });
+
+    await tx.orm.public.OccurrenceHistory.create({
+      type: "PRIORIDADE",
+      occurrenceId,
+      previousPriority: occurrence.priority,
+      newPriority: priority,
+      changedById,
     });
+
+    return updatedOccurrence;
+  });
 }
 
 export async function assignResponsible(
   occurrenceId: number,
   responsibleId: number,
+  changedById: number,
 ) {
   const occurrence =
     await db.orm.public.Occurrence
@@ -178,11 +200,31 @@ export async function assignResponsible(
     );
   }
 
-  return db.orm.public.Occurrence
-    .where({ id: occurrenceId })
-    .update({
-      responsibleId,
+  if (occurrence.responsibleId === responsibleId) {
+    throw new AppError(
+      "Este gestor já está atribuído à ocorrência",
+      400,
+    );
+  }
+
+  return db.transaction(async (tx) => {
+    const updatedOccurrence =
+      await tx.orm.public.Occurrence
+        .where({ id: occurrenceId })
+        .update({
+          responsibleId,
+        });
+
+    await tx.orm.public.OccurrenceHistory.create({
+      type: "RESPONSAVEL",
+      occurrenceId,
+      previousResponsibleId: occurrence.responsibleId,
+      newResponsibleId: responsibleId,
+      changedById,
     });
+
+    return updatedOccurrence;
+  });
 }
 
 export async function updateStatus(
@@ -217,7 +259,8 @@ export async function updateStatus(
           status: data.status,
         });
 
-    await tx.orm.public.OccurrenceStatusHistory.create({
+    await tx.orm.public.OccurrenceHistory.create({
+      type: "STATUS",
       occurrenceId,
       previousStatus: occurrence.status,
       newStatus: data.status,
@@ -302,7 +345,7 @@ export async function listComments(
     .all();
 }
 
-export async function listStatusHistory(
+export async function listOccurrenceHistory(
   occurrenceId: number,
   userId: number,
   role: UserRole,
@@ -313,7 +356,7 @@ export async function listStatusHistory(
     role,
   );
 
-  return db.orm.public.OccurrenceStatusHistory
+  return db.orm.public.OccurrenceHistory
     .where({
       occurrenceId,
     })

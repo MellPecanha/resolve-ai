@@ -12,8 +12,8 @@
       "model": "Occurrence",
       "namespace": "public"
     },
-    "occurrenceStatusHistory": {
-      "model": "OccurrenceStatusHistory",
+    "occurrenceHistory": {
+      "model": "OccurrenceHistory",
       "namespace": "public"
     },
     "rating": {
@@ -29,6 +29,23 @@
     "namespaces": {
       "public": {
         "enum": {
+          "OccurrenceHistoryType": {
+            "codecId": "pg/text@1",
+            "members": [
+              {
+                "name": "STATUS",
+                "value": "STATUS"
+              },
+              {
+                "name": "PRIORIDADE",
+                "value": "PRIORIDADE"
+              },
+              {
+                "name": "RESPONSAVEL",
+                "value": "RESPONSAVEL"
+              }
+            ]
+          },
           "OccurrencePriority": {
             "codecId": "pg/text@1",
             "members": [
@@ -370,7 +387,7 @@
                   ]
                 },
                 "to": {
-                  "model": "OccurrenceStatusHistory",
+                  "model": "OccurrenceHistory",
                   "namespace": "public"
                 }
               }
@@ -421,7 +438,7 @@
               "table": "occurrence"
             }
           },
-          "OccurrenceStatusHistory": {
+          "OccurrenceHistory": {
             "fields": {
               "changedById": {
                 "nullable": false,
@@ -444,8 +461,28 @@
                   "kind": "scalar"
                 }
               },
+              "newPriority": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "OccurrencePriority",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "newResponsibleId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
               "newStatus": {
-                "nullable": false,
+                "nullable": true,
                 "type": {
                   "codecId": "pg/text@1",
                   "kind": "scalar"
@@ -471,8 +508,28 @@
                   "kind": "scalar"
                 }
               },
+              "previousPriority": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "OccurrencePriority",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "previousResponsibleId": {
+                "nullable": true,
+                "type": {
+                  "codecId": "pg/int4@1",
+                  "kind": "scalar"
+                }
+              },
               "previousStatus": {
-                "nullable": false,
+                "nullable": true,
                 "type": {
                   "codecId": "pg/text@1",
                   "kind": "scalar"
@@ -480,6 +537,19 @@
                 "valueSet": {
                   "entityKind": "enum",
                   "entityName": "OccurrenceStatus",
+                  "namespaceId": "public",
+                  "plane": "domain"
+                }
+              },
+              "type": {
+                "nullable": false,
+                "type": {
+                  "codecId": "pg/text@1",
+                  "kind": "scalar"
+                },
+                "valueSet": {
+                  "entityKind": "enum",
+                  "entityName": "OccurrenceHistoryType",
                   "namespaceId": "public",
                   "plane": "domain"
                 }
@@ -528,6 +598,12 @@
                 "id": {
                   "column": "id"
                 },
+                "newPriority": {
+                  "column": "newPriority"
+                },
+                "newResponsibleId": {
+                  "column": "newResponsibleId"
+                },
                 "newStatus": {
                   "column": "newStatus"
                 },
@@ -537,12 +613,21 @@
                 "occurrenceId": {
                   "column": "occurrenceId"
                 },
+                "previousPriority": {
+                  "column": "previousPriority"
+                },
+                "previousResponsibleId": {
+                  "column": "previousResponsibleId"
+                },
                 "previousStatus": {
                   "column": "previousStatus"
+                },
+                "type": {
+                  "column": "type"
                 }
               },
               "namespaceId": "public",
-              "table": "occurrenceStatusHistory"
+              "table": "occurrenceHistory"
             }
           },
           "Rating": {
@@ -787,7 +872,7 @@
                   ]
                 },
                 "to": {
-                  "model": "OccurrenceStatusHistory",
+                  "model": "OccurrenceHistory",
                   "namespace": "public"
                 }
               }
@@ -1096,17 +1181,32 @@
               },
               "uniques": []
             },
-            "occurrenceStatusHistory": {
+            "occurrenceHistory": {
               "checks": [
                 {
+                  "expression": "\"newPriority\" IN ('BAIXA', 'MEDIA', 'ALTA', 'URGENTE')",
+                  "name": "occurrenceHistory_newPriority_check_48ca1018",
+                  "prefix": "occurrenceHistory_newPriority_check"
+                },
+                {
                   "expression": "\"newStatus\" IN ('ABERTA', 'EM_ANALISE', 'EM_ATENDIMENTO', 'RESOLVIDA', 'CANCELADA')",
-                  "name": "occurrenceStatusHistory_newStatus_check_8259dbac",
-                  "prefix": "occurrenceStatusHistory_newStatus_check"
+                  "name": "occurrenceHistory_newStatus_check_8259dbac",
+                  "prefix": "occurrenceHistory_newStatus_check"
+                },
+                {
+                  "expression": "\"previousPriority\" IN ('BAIXA', 'MEDIA', 'ALTA', 'URGENTE')",
+                  "name": "occurrenceHistory_previousPriority_check_dd420218",
+                  "prefix": "occurrenceHistory_previousPriority_check"
                 },
                 {
                   "expression": "\"previousStatus\" IN ('ABERTA', 'EM_ANALISE', 'EM_ATENDIMENTO', 'RESOLVIDA', 'CANCELADA')",
-                  "name": "occurrenceStatusHistory_previousStatus_check_77c5dbe3",
-                  "prefix": "occurrenceStatusHistory_previousStatus_check"
+                  "name": "occurrenceHistory_previousStatus_check_77c5dbe3",
+                  "prefix": "occurrenceHistory_previousStatus_check"
+                },
+                {
+                  "expression": "\"type\" IN ('STATUS', 'PRIORIDADE', 'RESPONSAVEL')",
+                  "name": "occurrenceHistory_type_check_efdaf464",
+                  "prefix": "occurrenceHistory_type_check"
                 }
               ],
               "columns": {
@@ -1133,10 +1233,26 @@
                   "nativeType": "int4",
                   "nullable": false
                 },
+                "newPriority": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "OccurrencePriority",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "newResponsibleId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": true
+                },
                 "newStatus": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
-                  "nullable": false,
+                  "nullable": true,
                   "valueSet": {
                     "entityKind": "valueSet",
                     "entityName": "OccurrenceStatus",
@@ -1154,13 +1270,40 @@
                   "nativeType": "int4",
                   "nullable": false
                 },
+                "previousPriority": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "OccurrencePriority",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "previousResponsibleId": {
+                  "codecId": "pg/int4@1",
+                  "nativeType": "int4",
+                  "nullable": true
+                },
                 "previousStatus": {
+                  "codecId": "pg/text@1",
+                  "nativeType": "text",
+                  "nullable": true,
+                  "valueSet": {
+                    "entityKind": "valueSet",
+                    "entityName": "OccurrenceStatus",
+                    "namespaceId": "public",
+                    "plane": "storage"
+                  }
+                },
+                "type": {
                   "codecId": "pg/text@1",
                   "nativeType": "text",
                   "nullable": false,
                   "valueSet": {
                     "entityKind": "valueSet",
-                    "entityName": "OccurrenceStatus",
+                    "entityName": "OccurrenceHistoryType",
                     "namespaceId": "public",
                     "plane": "storage"
                   }
@@ -1173,7 +1316,7 @@
                       "occurrenceId"
                     ],
                     "namespaceId": "public",
-                    "tableName": "occurrenceStatusHistory"
+                    "tableName": "occurrenceHistory"
                   },
                   "target": {
                     "columns": [
@@ -1189,7 +1332,7 @@
                       "changedById"
                     ],
                     "namespaceId": "public",
-                    "tableName": "occurrenceStatusHistory"
+                    "tableName": "occurrenceHistory"
                   },
                   "target": {
                     "columns": [
@@ -1205,16 +1348,16 @@
                   "columns": [
                     "changedById"
                   ],
-                  "name": "occurrenceStatusHistory_changedById_idx_d6e6aadb",
-                  "prefix": "occurrenceStatusHistory_changedById_idx",
+                  "name": "occurrenceHistory_changedById_idx_d6e6aadb",
+                  "prefix": "occurrenceHistory_changedById_idx",
                   "unique": false
                 },
                 {
                   "columns": [
                     "occurrenceId"
                   ],
-                  "name": "occurrenceStatusHistory_occurrenceId_idx_9f58affe",
-                  "prefix": "occurrenceStatusHistory_occurrenceId_idx",
+                  "name": "occurrenceHistory_occurrenceId_idx_9f58affe",
+                  "prefix": "occurrenceHistory_occurrenceId_idx",
                   "unique": false
                 }
               ],
@@ -1408,6 +1551,14 @@
             }
           },
           "valueSet": {
+            "OccurrenceHistoryType": {
+              "kind": "valueSet",
+              "values": [
+                "STATUS",
+                "PRIORIDADE",
+                "RESPONSAVEL"
+              ]
+            },
             "OccurrencePriority": {
               "kind": "valueSet",
               "values": [
@@ -1440,7 +1591,7 @@
         "kind": "postgres-schema"
       }
     },
-    "storageHash": "1daef2961d774aae20727f1c5e8cf48c35c42fde5a2be56f7ec11d48cb36f1b6"
+    "storageHash": "f4839ae36f67a16a211e1f3d3eae0a0cc062fc8e173cd9e933ec081a2e22a29c"
   },
   "execution": {
     "executionHash": "5bec04140016c48904c9b42aad68fb0919353b7f253645769463a5a58b165040",

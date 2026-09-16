@@ -33,7 +33,7 @@ import type {
 } from '@prisma/orm-postgres/contract/types';
 
 export type StorageHash =
-  StorageHashBase<'1daef2961d774aae20727f1c5e8cf48c35c42fde5a2be56f7ec11d48cb36f1b6'>;
+  StorageHashBase<'f4839ae36f67a16a211e1f3d3eae0a0cc062fc8e173cd9e933ec081a2e22a29c'>;
 export type ExecutionHash =
   ExecutionHashBase<'5bec04140016c48904c9b42aad68fb0919353b7f253645769463a5a58b165040'>;
 export type ProfileHash =
@@ -264,12 +264,18 @@ export type FieldOutputTypes = {
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
     };
-    readonly OccurrenceStatusHistory: {
+    readonly OccurrenceHistory: {
       readonly id: CodecTypes['pg/int4@1']['output'];
+      readonly type: 'STATUS' | 'PRIORIDADE' | 'RESPONSAVEL';
       readonly occurrenceId: CodecTypes['pg/int4@1']['output'];
       readonly previousStatus:
-        'ABERTA' | 'EM_ANALISE' | 'EM_ATENDIMENTO' | 'RESOLVIDA' | 'CANCELADA';
-      readonly newStatus: 'ABERTA' | 'EM_ANALISE' | 'EM_ATENDIMENTO' | 'RESOLVIDA' | 'CANCELADA';
+        'ABERTA' | 'EM_ANALISE' | 'EM_ATENDIMENTO' | 'RESOLVIDA' | 'CANCELADA' | null;
+      readonly newStatus:
+        'ABERTA' | 'EM_ANALISE' | 'EM_ATENDIMENTO' | 'RESOLVIDA' | 'CANCELADA' | null;
+      readonly previousPriority: 'BAIXA' | 'MEDIA' | 'ALTA' | 'URGENTE' | null;
+      readonly newPriority: 'BAIXA' | 'MEDIA' | 'ALTA' | 'URGENTE' | null;
+      readonly previousResponsibleId: CodecTypes['pg/int4@1']['output'] | null;
+      readonly newResponsibleId: CodecTypes['pg/int4@1']['output'] | null;
       readonly changedById: CodecTypes['pg/int4@1']['output'];
       readonly observation: CodecTypes['pg/text@1']['output'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
@@ -319,12 +325,18 @@ export type FieldInputTypes = {
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
     };
-    readonly OccurrenceStatusHistory: {
+    readonly OccurrenceHistory: {
       readonly id: CodecTypes['pg/int4@1']['input'];
+      readonly type: 'STATUS' | 'PRIORIDADE' | 'RESPONSAVEL';
       readonly occurrenceId: CodecTypes['pg/int4@1']['input'];
       readonly previousStatus:
-        'ABERTA' | 'EM_ANALISE' | 'EM_ATENDIMENTO' | 'RESOLVIDA' | 'CANCELADA';
-      readonly newStatus: 'ABERTA' | 'EM_ANALISE' | 'EM_ATENDIMENTO' | 'RESOLVIDA' | 'CANCELADA';
+        'ABERTA' | 'EM_ANALISE' | 'EM_ATENDIMENTO' | 'RESOLVIDA' | 'CANCELADA' | null;
+      readonly newStatus:
+        'ABERTA' | 'EM_ANALISE' | 'EM_ATENDIMENTO' | 'RESOLVIDA' | 'CANCELADA' | null;
+      readonly previousPriority: 'BAIXA' | 'MEDIA' | 'ALTA' | 'URGENTE' | null;
+      readonly newPriority: 'BAIXA' | 'MEDIA' | 'ALTA' | 'URGENTE' | null;
+      readonly previousResponsibleId: CodecTypes['pg/int4@1']['input'] | null;
+      readonly newResponsibleId: CodecTypes['pg/int4@1']['input'] | null;
       readonly changedById: CodecTypes['pg/int4@1']['input'];
       readonly observation: CodecTypes['pg/text@1']['input'] | null;
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
@@ -374,15 +386,21 @@ export type StorageColumnTypes = {
       readonly title: CodecTypes['pg/text@1']['output'];
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['output'];
     };
-    readonly occurrenceStatusHistory: {
+    readonly occurrenceHistory: {
       readonly changedById: CodecTypes['pg/int4@1']['output'];
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['output'];
       readonly id: CodecTypes['pg/int4@1']['output'];
-      readonly newStatus: 'ABERTA' | 'EM_ANALISE' | 'EM_ATENDIMENTO' | 'RESOLVIDA' | 'CANCELADA';
+      readonly newPriority: 'BAIXA' | 'MEDIA' | 'ALTA' | 'URGENTE' | null;
+      readonly newResponsibleId: CodecTypes['pg/int4@1']['output'] | null;
+      readonly newStatus:
+        'ABERTA' | 'EM_ANALISE' | 'EM_ATENDIMENTO' | 'RESOLVIDA' | 'CANCELADA' | null;
       readonly observation: CodecTypes['pg/text@1']['output'] | null;
       readonly occurrenceId: CodecTypes['pg/int4@1']['output'];
+      readonly previousPriority: 'BAIXA' | 'MEDIA' | 'ALTA' | 'URGENTE' | null;
+      readonly previousResponsibleId: CodecTypes['pg/int4@1']['output'] | null;
       readonly previousStatus:
-        'ABERTA' | 'EM_ANALISE' | 'EM_ATENDIMENTO' | 'RESOLVIDA' | 'CANCELADA';
+        'ABERTA' | 'EM_ANALISE' | 'EM_ATENDIMENTO' | 'RESOLVIDA' | 'CANCELADA' | null;
+      readonly type: 'STATUS' | 'PRIORIDADE' | 'RESPONSAVEL';
     };
     readonly rating: {
       readonly comment: CodecTypes['pg/text@1']['output'] | null;
@@ -429,15 +447,21 @@ export type StorageColumnInputTypes = {
       readonly title: CodecTypes['pg/text@1']['input'];
       readonly updatedAt: CodecTypes['pg/timestamptz-string@1']['input'];
     };
-    readonly occurrenceStatusHistory: {
+    readonly occurrenceHistory: {
       readonly changedById: CodecTypes['pg/int4@1']['input'];
       readonly createdAt: CodecTypes['pg/timestamptz-string@1']['input'];
       readonly id: CodecTypes['pg/int4@1']['input'];
-      readonly newStatus: 'ABERTA' | 'EM_ANALISE' | 'EM_ATENDIMENTO' | 'RESOLVIDA' | 'CANCELADA';
+      readonly newPriority: 'BAIXA' | 'MEDIA' | 'ALTA' | 'URGENTE' | null;
+      readonly newResponsibleId: CodecTypes['pg/int4@1']['input'] | null;
+      readonly newStatus:
+        'ABERTA' | 'EM_ANALISE' | 'EM_ATENDIMENTO' | 'RESOLVIDA' | 'CANCELADA' | null;
       readonly observation: CodecTypes['pg/text@1']['input'] | null;
       readonly occurrenceId: CodecTypes['pg/int4@1']['input'];
+      readonly previousPriority: 'BAIXA' | 'MEDIA' | 'ALTA' | 'URGENTE' | null;
+      readonly previousResponsibleId: CodecTypes['pg/int4@1']['input'] | null;
       readonly previousStatus:
-        'ABERTA' | 'EM_ANALISE' | 'EM_ATENDIMENTO' | 'RESOLVIDA' | 'CANCELADA';
+        'ABERTA' | 'EM_ANALISE' | 'EM_ATENDIMENTO' | 'RESOLVIDA' | 'CANCELADA' | null;
+      readonly type: 'STATUS' | 'PRIORIDADE' | 'RESPONSAVEL';
     };
     readonly rating: {
       readonly comment: CodecTypes['pg/text@1']['input'] | null;
@@ -682,7 +706,7 @@ type ContractBase = Omit<
                 },
               ];
             };
-            readonly occurrenceStatusHistory: {
+            readonly occurrenceHistory: {
               columns: {
                 readonly id: {
                   readonly nativeType: 'int4';
@@ -693,6 +717,11 @@ type ContractBase = Omit<
                     readonly expression: 'autoincrement()';
                   };
                 };
+                readonly type: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: false;
+                };
                 readonly occurrenceId: {
                   readonly nativeType: 'int4';
                   readonly codecId: 'pg/int4@1';
@@ -701,12 +730,32 @@ type ContractBase = Omit<
                 readonly previousStatus: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
-                  readonly nullable: false;
+                  readonly nullable: true;
                 };
                 readonly newStatus: {
                   readonly nativeType: 'text';
                   readonly codecId: 'pg/text@1';
-                  readonly nullable: false;
+                  readonly nullable: true;
+                };
+                readonly previousPriority: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly newPriority: {
+                  readonly nativeType: 'text';
+                  readonly codecId: 'pg/text@1';
+                  readonly nullable: true;
+                };
+                readonly previousResponsibleId: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: true;
+                };
+                readonly newResponsibleId: {
+                  readonly nativeType: 'int4';
+                  readonly codecId: 'pg/int4@1';
+                  readonly nullable: true;
                 };
                 readonly changedById: {
                   readonly nativeType: 'int4';
@@ -729,14 +778,14 @@ type ContractBase = Omit<
               uniques: readonly [];
               indexes: readonly [
                 {
-                  readonly name: 'occurrenceStatusHistory_occurrenceId_idx_9f58affe';
-                  readonly prefix: 'occurrenceStatusHistory_occurrenceId_idx';
+                  readonly name: 'occurrenceHistory_occurrenceId_idx_9f58affe';
+                  readonly prefix: 'occurrenceHistory_occurrenceId_idx';
                   readonly columns: readonly ['occurrenceId'];
                   readonly unique: false;
                 },
                 {
-                  readonly name: 'occurrenceStatusHistory_changedById_idx_d6e6aadb';
-                  readonly prefix: 'occurrenceStatusHistory_changedById_idx';
+                  readonly name: 'occurrenceHistory_changedById_idx_d6e6aadb';
+                  readonly prefix: 'occurrenceHistory_changedById_idx';
                   readonly columns: readonly ['changedById'];
                   readonly unique: false;
                 },
@@ -745,7 +794,7 @@ type ContractBase = Omit<
                 {
                   readonly source: {
                     readonly namespaceId: 'public' & NamespaceId;
-                    readonly tableName: 'occurrenceStatusHistory';
+                    readonly tableName: 'occurrenceHistory';
                     readonly columns: readonly ['occurrenceId'];
                   };
                   readonly target: {
@@ -757,7 +806,7 @@ type ContractBase = Omit<
                 {
                   readonly source: {
                     readonly namespaceId: 'public' & NamespaceId;
-                    readonly tableName: 'occurrenceStatusHistory';
+                    readonly tableName: 'occurrenceHistory';
                     readonly columns: readonly ['changedById'];
                   };
                   readonly target: {
@@ -902,6 +951,10 @@ type ContractBase = Omit<
             };
           };
           readonly valueSet: {
+            readonly OccurrenceHistoryType: {
+              readonly kind: 'valueSet';
+              readonly values: readonly ['STATUS', 'PRIORIDADE', 'RESPONSAVEL'];
+            };
             readonly OccurrencePriority: {
               readonly kind: 'valueSet';
               readonly values: readonly ['BAIXA', 'MEDIA', 'ALTA', 'URGENTE'];
@@ -936,9 +989,9 @@ type ContractBase = Omit<
       readonly namespace: 'public' & NamespaceId;
       readonly model: 'Occurrence';
     };
-    readonly occurrenceStatusHistory: {
+    readonly occurrenceHistory: {
       readonly namespace: 'public' & NamespaceId;
-      readonly model: 'OccurrenceStatusHistory';
+      readonly model: 'OccurrenceHistory';
     };
     readonly comment: { readonly namespace: 'public' & NamespaceId; readonly model: 'Comment' };
     readonly rating: { readonly namespace: 'public' & NamespaceId; readonly model: 'Rating' };
@@ -1117,7 +1170,7 @@ type ContractBase = Omit<
               readonly statusHistory: {
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;
-                  readonly model: 'OccurrenceStatusHistory';
+                  readonly model: 'OccurrenceHistory';
                 };
                 readonly cardinality: '1:N';
                 readonly on: {
@@ -1146,23 +1199,43 @@ type ContractBase = Omit<
               };
             };
           };
-          readonly OccurrenceStatusHistory: {
+          readonly OccurrenceHistory: {
             readonly fields: {
               readonly id: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly type: {
+                readonly nullable: false;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
               readonly occurrenceId: {
                 readonly nullable: false;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
               };
               readonly previousStatus: {
-                readonly nullable: false;
+                readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
               };
               readonly newStatus: {
-                readonly nullable: false;
+                readonly nullable: true;
                 readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly previousPriority: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly newPriority: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/text@1' };
+              };
+              readonly previousResponsibleId: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
+              };
+              readonly newResponsibleId: {
+                readonly nullable: true;
+                readonly type: { readonly kind: 'scalar'; readonly codecId: 'pg/int4@1' };
               };
               readonly changedById: {
                 readonly nullable: false;
@@ -1202,13 +1275,18 @@ type ContractBase = Omit<
               };
             };
             readonly storage: {
-              readonly table: 'occurrenceStatusHistory';
+              readonly table: 'occurrenceHistory';
               readonly namespaceId: 'public';
               readonly fields: {
                 readonly id: { readonly column: 'id' };
+                readonly type: { readonly column: 'type' };
                 readonly occurrenceId: { readonly column: 'occurrenceId' };
                 readonly previousStatus: { readonly column: 'previousStatus' };
                 readonly newStatus: { readonly column: 'newStatus' };
+                readonly previousPriority: { readonly column: 'previousPriority' };
+                readonly newPriority: { readonly column: 'newPriority' };
+                readonly previousResponsibleId: { readonly column: 'previousResponsibleId' };
+                readonly newResponsibleId: { readonly column: 'newResponsibleId' };
                 readonly changedById: { readonly column: 'changedById' };
                 readonly observation: { readonly column: 'observation' };
                 readonly createdAt: { readonly column: 'createdAt' };
@@ -1372,7 +1450,7 @@ type ContractBase = Omit<
               readonly statusChanges: {
                 readonly to: {
                   readonly namespace: 'public' & NamespaceId;
-                  readonly model: 'OccurrenceStatusHistory';
+                  readonly model: 'OccurrenceHistory';
                 };
                 readonly cardinality: '1:N';
                 readonly on: {
@@ -1421,6 +1499,14 @@ type ContractBase = Omit<
               { readonly name: 'MEDIA'; readonly value: 'MEDIA' },
               { readonly name: 'ALTA'; readonly value: 'ALTA' },
               { readonly name: 'URGENTE'; readonly value: 'URGENTE' },
+            ];
+          };
+          readonly OccurrenceHistoryType: {
+            readonly codecId: 'pg/text@1';
+            readonly members: readonly [
+              { readonly name: 'STATUS'; readonly value: 'STATUS' },
+              { readonly name: 'PRIORIDADE'; readonly value: 'PRIORIDADE' },
+              { readonly name: 'RESPONSAVEL'; readonly value: 'RESPONSAVEL' },
             ];
           };
         };

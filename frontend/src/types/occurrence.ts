@@ -27,21 +27,36 @@ export interface Occurrence {
   updatedAt: string;
 }
 
+export type OccurrenceHistoryType =
+  | "STATUS"
+  | "PRIORIDADE"
+  | "RESPONSAVEL";
+
 export interface OccurrenceHistory {
   id: number;
   occurrenceId: number;
+
+  type: OccurrenceHistoryType;
+
   previousStatus: OccurrenceStatus | null;
-  newStatus: OccurrenceStatus;
+  newStatus: OccurrenceStatus | null;
+
+  previousPriority: OccurrencePriority | null;
+  newPriority: OccurrencePriority | null;
+
+  previousResponsibleId: number | null;
+  newResponsibleId: number | null;
+
   changedById: number;
   observation: string | null;
   createdAt: string;
+
   changedBy?: {
     id: number;
     name: string;
     role: "SOLICITANTE" | "GESTOR";
   };
 }
-
 export interface OccurrenceComment {
   id: number;
   content: string;

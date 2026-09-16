@@ -20,6 +20,12 @@ enum OccurrencePriority {
   URGENTE
 }
 
+enum OccurrenceHistoryType {
+  STATUS
+  PRIORIDADE
+  RESPONSAVEL
+}
+
 model User {
   id                  Int      @id @default(autoincrement())
   name                String
@@ -30,7 +36,7 @@ model User {
   createdOccurrences  Occurrence[] @relation("RequesterOccurrences")
   assignedOccurrences Occurrence[] @relation("ResponsibleOccurrences")
 
-  statusChanges OccurrenceStatusHistory[]
+  statusChanges OccurrenceHistory[]
 
   comments Comment[]
   ratings  Rating[]
@@ -56,7 +62,7 @@ model Occurrence {
   responsible   User? @relation("ResponsibleOccurrences", fields: [responsibleId], references: [id])
   responsibleId Int?
 
-  statusHistory OccurrenceStatusHistory[]
+  statusHistory OccurrenceHistory[]
 
   comments Comment[]
   ratings  Rating?
@@ -65,14 +71,21 @@ model Occurrence {
   updatedAt     temporal.updatedAtString()
 }
 
-model OccurrenceStatusHistory {
+model OccurrenceHistory {
   id            Int              @id @default(autoincrement())
 
+  type          OccurrenceHistoryType
   occurrence    Occurrence       @relation(fields: [occurrenceId], references: [id])
   occurrenceId  Int
 
-  previousStatus OccurrenceStatus
-  newStatus      OccurrenceStatus
+  previousStatus OccurrenceStatus?
+  newStatus      OccurrenceStatus?
+
+  previousPriority OccurrencePriority?
+  newPriority     OccurrencePriority?
+
+  previousResponsibleId Int?
+  newResponsibleId      Int?
 
   changedBy     User             @relation(fields: [changedById], references: [id])
   changedById   Int

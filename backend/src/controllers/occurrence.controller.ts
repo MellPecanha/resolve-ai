@@ -22,7 +22,7 @@ import {
   updateSolution,
   createComment,
   listComments,
-  listStatusHistory,
+  listOccurrenceHistory,
   createRating,
   getRating,
   updateRating,
@@ -109,6 +109,7 @@ export async function changePriority(
     await updatePriority(
       occurrenceId,
       data.priority,
+      req.user!.id,
     );
 
   return res.json(occurrence);
@@ -137,6 +138,7 @@ export async function assign(
     await assignResponsible(
       occurrenceId,
       data.responsibleId,
+      req.user!.id,
     );
 
   return res.json(occurrence);
@@ -268,7 +270,7 @@ export async function getHistory(
   }
 
   const history =
-    await listStatusHistory(
+    await listOccurrenceHistory(
       occurrenceId,
       req.user!.id,
       req.user!.role,

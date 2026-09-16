@@ -25,6 +25,7 @@ import type {
   Occurrence,
   OccurrenceComment,
   OccurrenceHistory,
+  OccurrencePriority,
   OccurrenceRating,
   OccurrenceStatus,
 } from "../../types/occurrence";
@@ -64,7 +65,10 @@ const statusConfig: Record<
   },
 };
 
-const priorityLabels = {
+const priorityLabels: Record<
+  OccurrencePriority,
+  string
+> = {
   BAIXA: "Baixa",
   MEDIA: "Média",
   ALTA: "Alta",
@@ -581,11 +585,54 @@ function OccurrenceDetails() {
             ) : (
               <div className="history-timeline">
                 {history.map((item) => {
-                  const itemStatus =
-                    statusConfig[item.newStatus];
+                  let title = "";
+                  let transition = "";
+                  let HistoryIcon = Clock3;
 
-                  const HistoryIcon =
-                    itemStatus.icon;
+                  if (item.type === "STATUS" && item.newStatus) {
+                    const newStatus = statusConfig[item.newStatus];
+
+                    HistoryIcon = newStatus.icon;
+                    title = newStatus.label;
+
+                    if (item.previousStatus) {
+                      transition = `${statusConfig[item.previousStatus].label} → ${newStatus.label}`;
+                    }
+                  }
+
+                  if (
+                    item.type === "PRIORIDADE" &&
+                    item.newPriority
+                  ) {
+                    HistoryIcon = AlertCircle;
+                    title = `Prioridade: ${priorityLabels[item.newPriority]}`;
+
+                    if (item.previousPriority) {
+                      transition = `${priorityLabels[item.previousPriority]} → ${priorityLabels[item.newPriority]}`;
+                    }
+                  }
+
+                  if (
+                    item.type === "RESPONSAVEL"
+                  ) {
+                    HistoryIcon = MessageCircle;
+
+                    if (item.newResponsibleId) {
+                      title = "Responsável atribuído";
+
+                      if (item.previousResponsibleId) {
+                        transition = `Gestor #${item.previousResponsibleId} → Gestor #${item.newResponsibleId}`;
+                      } else {
+                        transition = `Gestor #${item.newResponsibleId}`;
+                      }
+                    } else {
+                      title = "Responsável removido";
+
+                      if (item.previousResponsibleId) {
+                        transition = `Gestor #${item.previousResponsibleId} → Não atribuído`;
+                      }
+                    }
+                  }
 
                   return (
                     <div
@@ -598,26 +645,16 @@ function OccurrenceDetails() {
 
                       <div className="history-content">
                         <div className="history-top">
-                          <strong>
-                            {itemStatus.label}
-                          </strong>
+                          <strong>{title}</strong>
 
                           <span>
-                            {formatDate(
-                              item.createdAt,
-                            )}
+                            {formatDate(item.createdAt)}
                           </span>
                         </div>
 
-                        {item.previousStatus && (
+                        {transition && (
                           <span className="history-transition">
-                            {
-                              statusConfig[
-                                item.previousStatus
-                              ].label
-                            }
-                            {" → "}
-                            {itemStatus.label}
+                            {transition}
                           </span>
                         )}
 
