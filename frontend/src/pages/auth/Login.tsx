@@ -180,6 +180,10 @@ function Login() {
           Criar conta
         </Link>
       </p>
+
+      <p className="auth-switch">
+        Esqueceu sua senha? Entre em contato com o suporte.
+      </p>
     </AuthLayout>
   );
 }

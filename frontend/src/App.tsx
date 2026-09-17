@@ -1,6 +1,5 @@
 import {
   BrowserRouter,
-  Navigate,
   Route,
   Routes,
 } from "react-router-dom";
@@ -8,6 +7,7 @@ import {
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 
+import Home from './pages/Home';
 import NotFound from "./pages/NotFound";
 import MyOccurrences from "./pages/requester/MyOccurrences";
 import NewOccurrence from "./pages/requester/NewOccurrence";
@@ -89,12 +89,7 @@ function App() {
 
         <Route
           path="/"
-          element={
-            <Navigate
-              to="/login"
-              replace
-            />
-          }
+          element={<Home />}
         />
 
         <Route
