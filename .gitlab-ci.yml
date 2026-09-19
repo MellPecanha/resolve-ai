@@ -6,6 +6,8 @@ stages:
   - build
 
 default:
+  tags:
+    - homeserver
   before_script:
     - corepack enable
   cache:
