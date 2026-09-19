@@ -1,4 +1,5 @@
 import {
+  CircleUserRound,
   LogOut,
   Settings,
   UserRound,
@@ -20,8 +21,7 @@ function AppLayout() {
     return null;
   }
 
-  const isManager =
-    user.role === "GESTOR";
+  const isManager = user.role === "GESTOR";
 
   function handleLogout() {
     signOut();
@@ -49,7 +49,7 @@ function AppLayout() {
           </span>
         </div>
 
-        <div className="app-user">
+        <NavLink to="/perfil" className="app-user">
           <div className="app-user-info">
             <span className="app-user-name">
               {user.name}
@@ -67,7 +67,7 @@ function AppLayout() {
               .charAt(0)
               .toUpperCase()}
           </div>
-        </div>
+        </NavLink>
       </header>
 
       <aside className="app-sidebar">
@@ -132,6 +132,24 @@ function AppLayout() {
         </nav>
 
         <div className="sidebar-bottom">
+          <NavLink
+            to="/perfil"
+            className={({ isActive }) =>
+              `sidebar-item ${isActive
+                ? "sidebar-item-active"
+                : ""
+              }`
+            }
+          >
+            <span className="sidebar-icon">
+              <CircleUserRound size={20} />
+            </span>
+
+            <span className="sidebar-label">
+              Perfil
+            </span>
+          </NavLink>
+
           <button
             type="button"
             className="sidebar-item sidebar-logout"

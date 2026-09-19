@@ -13,6 +13,7 @@ import MyOccurrences from "./pages/requester/MyOccurrences";
 import NewOccurrence from "./pages/requester/NewOccurrence";
 import OccurrenceDetails from "./pages/requester/OccurrenceDetails";
 import Dashboard from "./pages/manager/Dashboard";
+import Profile from "./pages/profile/Profile";
 
 import ProtectedRoute from "./components/ProtectedRoute";
 import RoleRoute from "./components/RoleRoute";
@@ -96,6 +97,18 @@ function App() {
           path="*"
           element={<NotFound />}
         />
+
+        <Route element={<AppLayout />}>
+          <Route path="/perfil" element={<Profile />} />
+
+          <Route element={<RoleRoute allowedRole="SOLICITANTE" />}>
+            ...
+          </Route>
+
+          <Route element={<RoleRoute allowedRole="GESTOR" />}>
+            ...
+          </Route>
+        </Route>
       </Routes>
     </BrowserRouter>
   );
