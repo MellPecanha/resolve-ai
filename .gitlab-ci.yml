@@ -1,0 +1,55 @@
+image: node:22-bookworm
+
+stages:
+  - quality
+  - test
+  - build
+
+default:
+  before_script:
+    - corepack enable
+  cache:
+    key:
+      files:
+        - backend/yarn.lock
+        - frontend/yarn.lock
+    paths:
+      - .yarn-cache/
+
+variables:
+  YARN_CACHE_FOLDER: "$CI_PROJECT_DIR/.yarn-cache"
+
+frontend:lint:
+  stage: quality
+  script:
+    - cd frontend
+    - yarn install --frozen-lockfile
+    - yarn lint
+
+backend:test:
+  stage: test
+  services:
+    - name: postgres:17
+      alias: postgres
+  variables:
+    POSTGRES_DB: resolveai_test
+    POSTGRES_USER: resolveai
+    POSTGRES_PASSWORD: resolveai
+    DATABASE_URL: postgresql://resolveai:resolveai@postgres:5432/resolveai_test
+    JWT_SECRET: resolve-ai-ci-secret
+  script:
+    - cd backend
+    - yarn install --immutable
+    - yarn prisma db init --db "$DATABASE_URL"
+    - yarn test
+
+frontend:build:
+  stage: build
+  script:
+    - cd frontend
+    - yarn install --frozen-lockfile
+    - yarn build
+  artifacts:
+    paths:
+      - frontend/dist/
+    expire_in: 1 week
