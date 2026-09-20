@@ -1,6 +1,9 @@
 import { Router } from "express";
 
-import { getManagers } from "../controllers/user.controller.js";
+import {
+  getManagers,
+  updateMyProfile,
+} from "../controllers/user.controller.js";
 
 import { authenticate } from "../middlewares/auth.middleware.js";
 import { authorize } from "../middlewares/role.middleware.js";
@@ -13,6 +16,12 @@ userRoutes.get(
   authenticate,
   authorize("GESTOR"),
   asyncHandler(getManagers),
+);
+
+userRoutes.patch(
+  "/me",
+  authenticate,
+  asyncHandler(updateMyProfile),
 );
 
 export { userRoutes };

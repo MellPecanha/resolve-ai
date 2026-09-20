@@ -7,7 +7,7 @@ import {
 import Login from "./pages/auth/Login";
 import Register from "./pages/auth/Register";
 
-import Home from './pages/Home';
+import Home from "./pages/Home";
 import NotFound from "./pages/NotFound";
 import MyOccurrences from "./pages/requester/MyOccurrences";
 import NewOccurrence from "./pages/requester/NewOccurrence";
@@ -22,7 +22,6 @@ import ManagerOccurrences from "./pages/manager/Occurrence";
 import ManagerOccurrenceDetails from "./pages/manager/OccurrenceDetails";
 
 import AppLayout from "./layouts/AppLayout";
-
 
 function App() {
   return (
@@ -41,26 +40,17 @@ function App() {
         <Route element={<ProtectedRoute />}>
           <Route element={<AppLayout />}>
             <Route
+              path="/perfil"
+              element={<Profile />}
+            />
+
+            <Route
               element={
                 <RoleRoute
                   allowedRole="SOLICITANTE"
                 />
               }
             >
-              <Route
-                path="/minhas-ocorrencias"
-                element={<MyOccurrences />}
-              />
-
-              <Route
-                path="/ocorrencias/:id"
-                element={<OccurrenceDetails />}
-              />
-
-              <Route
-                path="/ocorrencias/nova"
-                element={<NewOccurrence />}
-              />
             </Route>
 
             <Route
@@ -70,20 +60,6 @@ function App() {
                 />
               }
             >
-              <Route
-                path="/dashboard"
-                element={<Dashboard />}
-              />
-
-              <Route
-                path="/ocorrencias"
-                element={<ManagerOccurrences />}
-              />
-
-              <Route
-                path="/ocorrencias/:id/gestao"
-                element={<ManagerOccurrenceDetails />}
-              />
             </Route>
           </Route>
         </Route>
@@ -97,18 +73,6 @@ function App() {
           path="*"
           element={<NotFound />}
         />
-
-        <Route element={<AppLayout />}>
-          <Route path="/perfil" element={<Profile />} />
-
-          <Route element={<RoleRoute allowedRole="SOLICITANTE" />}>
-            ...
-          </Route>
-
-          <Route element={<RoleRoute allowedRole="GESTOR" />}>
-            ...
-          </Route>
-        </Route>
       </Routes>
     </BrowserRouter>
   );
