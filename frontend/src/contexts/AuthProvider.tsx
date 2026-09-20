@@ -69,6 +69,17 @@ function AuthProvider({
     setUser(newUser);
   }
 
+  function updateUser(
+    updatedUser: User,
+  ) {
+    localStorage.setItem(
+      USER_KEY,
+      JSON.stringify(updatedUser),
+    );
+
+    setUser(updatedUser);
+  }
+
   function signOut() {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
@@ -86,6 +97,7 @@ function AuthProvider({
           token && user,
         ),
         signIn,
+        updateUser,
         signOut,
       }),
       [token, user],

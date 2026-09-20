@@ -6,7 +6,11 @@ export interface AuthContextData {
   user: User | null;
   token: string | null;
   isAuthenticated: boolean;
-  signIn: (token: string, user: User) => void;
+  signIn: (
+    token: string,
+    user: User,
+  ) => void;
+  updateUser: (user: User) => void;
   signOut: () => void;
 }
 

@@ -1,4 +1,4 @@
-import type { UserRole } from "./auth";
+import type { User, UserRole } from "./auth";
 
 export interface Manager {
   id: number;
@@ -6,3 +6,13 @@ export interface Manager {
   email: string;
   role: UserRole;
 }
+
+export interface UpdateProfileRequest {
+  name: string;
+  email: string;
+  currentPassword?: string;
+  newPassword?: string;
+  confirmNewPassword?: string;
+}
+
+export type UpdateProfileResponse = User;
