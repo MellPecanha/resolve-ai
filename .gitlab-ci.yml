@@ -4,6 +4,7 @@ stages:
   - quality
   - test
   - build
+  - deploy
 
 default:
   tags:
@@ -55,3 +56,13 @@ frontend:build:
     paths:
       - frontend/dist/
     expire_in: 1 week
+
+deploy:production:
+  image: docker:27-cli
+  stage: deploy
+  before_script: []
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "main"'
+  script:
+    - docker compose -p resolve-ai -f docker-compose.production.yml config
+    - docker compose -p resolve-ai -f docker-compose.production.yml up -d --build --remove-orphans

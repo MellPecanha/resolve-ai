@@ -7,4 +7,5 @@ backend/.agents/
 backend/.claude/
 backend/.cursor/
 backend/.devin/
+backend/migrations/
 .DS_Store
