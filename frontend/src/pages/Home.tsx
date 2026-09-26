@@ -7,6 +7,8 @@ import {
 } from "lucide-react";
 import { Link } from "react-router-dom";
 
+import ThemeToggle from "../components/ThemeToggle";
+
 function Home() {
   return (
     <main className="home-page">
@@ -15,6 +17,14 @@ function Home() {
           <img src="/favicon.svg" alt="Resolve Aí" />
           <span>resolve <strong>aí</strong></span>
         </Link>
+
+        <div className="home-header-actions">
+          <ThemeToggle />
+
+          <Link to="/login" className="home-login">
+            Entrar
+          </Link>
+        </div>
       </header>
 
       <section className="home-hero">

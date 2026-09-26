@@ -11,6 +11,7 @@ import {
 } from "react-router-dom";
 
 import { useAuth } from "../contexts/useAuth";
+import ThemeToggle from "../components/ThemeToggle";
 
 function AppLayout() {
   const { user, signOut } = useAuth();
@@ -132,6 +133,8 @@ function AppLayout() {
         </nav>
 
         <div className="sidebar-bottom">
+          <ThemeToggle className="sidebar-theme-toggle" />
+
           <NavLink
             to="/perfil"
             className={({ isActive }) =>

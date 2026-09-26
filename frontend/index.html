@@ -6,6 +6,17 @@
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" sizes="any" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
   <title>resolve aí</title>
+  <script>
+    (() => {
+      const savedTheme = localStorage.getItem("resolve-ai-theme");
+      const theme = savedTheme === "light" || savedTheme === "dark"
+        ? savedTheme
+        : window.matchMedia("(prefers-color-scheme: light)").matches
+          ? "light"
+          : "dark";
+      document.documentElement.dataset.theme = theme;
+    })();
+  </script>
 </head>
 
 <body>

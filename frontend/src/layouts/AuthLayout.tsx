@@ -1,5 +1,7 @@
 import type { ReactNode } from "react";
 
+import ThemeToggle from "../components/ThemeToggle";
+
 interface AuthLayoutProps {
   children: ReactNode;
 }
@@ -8,6 +10,7 @@ function AuthLayout({ children }: AuthLayoutProps) {
   return (
     <main className="auth-page">
       <div className="auth-background-glow" />
+      <ThemeToggle className="theme-toggle-auth" />
 
       <section className="auth-container">
         <div className="auth-brand">
