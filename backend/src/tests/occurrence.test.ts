@@ -66,7 +66,9 @@ describe("Occurrences", () => {
           `^occurrence-images/${solicitante1.id}/`,
         ),
       );
-      expect(response.body.url).toContain("localhost:9001");
+      expect(new URL(response.body.url).pathname).toBe(
+        "/occurrence-images",
+      );
       expect(response.body.fields).toHaveProperty(
         "Content-Type",
         "image/jpeg",
