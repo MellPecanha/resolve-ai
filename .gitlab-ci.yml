@@ -66,3 +66,5 @@ deploy:production:
   script:
     - docker compose -p resolve-ai -f docker-compose.production.yml config
     - docker compose -p resolve-ai -f docker-compose.production.yml up -d --build --remove-orphans
+    - docker compose -p resolve-ai -f docker-compose.production.yml ps
+    - docker compose -p resolve-ai -f docker-compose.production.yml logs backend rustfs --tail=100
