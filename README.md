@@ -546,11 +546,16 @@ backend/.env
 ```env
 DATABASE_URL=postgresql://resolveai:resolveai@localhost:5432/resolveai
 JWT_SECRET=seu_secret
+S3_PUBLIC_ENDPOINT=http://localhost:9001
+S3_BUCKET=occurrence-images
+S3_ACCESS_KEY=resolveai
+S3_SECRET_KEY=resolveai-rustfs-password
+S3_CORS_ORIGIN=http://localhost:5173
 ```
 
 ---
 
-## 🐳 Banco de dados com Docker
+## 🐳 Serviços locais com Docker
 
 Na raiz do projeto:
 
@@ -558,7 +563,9 @@ Na raiz do projeto:
 docker compose up -d
 ```
 
-Isso inicia o PostgreSQL utilizado pelo projeto.
+Isso inicia o PostgreSQL e o RustFS, o storage de objetos compatível com S3. O backend cria o bucket privado `occurrence-images` e configura o CORS automaticamente na primeira inicialização.
+
+Para acesso local, a API S3 do RustFS fica em `http://localhost:9001` e o console administrativo em `http://localhost:9002`.
 
 Para verificar os containers:
 
@@ -641,6 +648,8 @@ VITE_API_URL=http://localhost:3333
 ```
 
 Caso a variável não seja definida, a aplicação utiliza a URL padrão configurada no projeto.
+
+Em produção, configure `S3_PUBLIC_ENDPOINT` com a URL HTTPS que o navegador consegue alcançar, por exemplo `https://storage.seudominio.com`, e `S3_CORS_ORIGIN` com a origem pública do frontend. O bucket permanece privado e as imagens são entregues por URLs assinadas de curta duração.
 
 ---
 

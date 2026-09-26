@@ -5,7 +5,7 @@ export const createOccurrenceSchema = z.object({
   description: z.string().min(5),
   category: z.string().min(2),
   location: z.string().min(2),
-  imageUrl: z.url().optional(),
+  imageKey: z.string().min(1).max(512).optional(),
 });
 
 export type CreateOccurrenceDTO = z.infer<

@@ -50,6 +50,42 @@ describe("Occurrences", () => {
     gestor2Token = await loginAs(gestor2.email);
   });
 
+  describe("upload de imagem", () => {
+    it("deve criar um upload pré-assinado para o solicitante", async () => {
+      const response = await request(app)
+        .post("/uploads/occurrence-image")
+        .set("Authorization", `Bearer ${solicitanteToken}`)
+        .send({
+          contentType: "image/jpeg",
+          size: 1024,
+        });
+
+      expect(response.status).toBe(201);
+      expect(response.body.key).toMatch(
+        new RegExp(
+          `^occurrence-images/${solicitante1.id}/`,
+        ),
+      );
+      expect(response.body.url).toContain("localhost:9001");
+      expect(response.body.fields).toHaveProperty(
+        "Content-Type",
+        "image/jpeg",
+      );
+    });
+
+    it("deve rejeitar tipo e tamanho não permitidos", async () => {
+      const response = await request(app)
+        .post("/uploads/occurrence-image")
+        .set("Authorization", `Bearer ${solicitanteToken}`)
+        .send({
+          contentType: "image/gif",
+          size: 6 * 1024 * 1024,
+        });
+
+      expect(response.status).toBe(400);
+    });
+  });
+
   describe("criação", () => {
     it("deve permitir que um solicitante crie uma ocorrência", async () => {
       const response = await request(app)

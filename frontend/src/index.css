@@ -1656,6 +1656,77 @@ select {
   object-fit: cover;
 }
 
+.image-upload-field {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.image-upload-input {
+  position: absolute;
+
+  width: 1px;
+  height: 1px;
+
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.image-upload-picker {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+
+  min-width: 0;
+  min-height: 42px;
+  padding: 0 13px;
+
+  color: var(--color-text);
+
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: 8px;
+  cursor: pointer;
+}
+
+.image-upload-picker span {
+  overflow: hidden;
+
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.image-upload-picker:hover {
+  border-color: var(--color-primary);
+}
+
+.image-upload-input:focus-visible + .image-upload-picker {
+  outline: 2px solid var(--color-primary);
+  outline-offset: 2px;
+}
+
+.image-upload-remove {
+  display: inline-grid;
+  place-items: center;
+
+  width: 34px;
+  height: 34px;
+
+  color: var(--color-muted);
+
+  background: transparent;
+  border: 0;
+  border-radius: 6px;
+  cursor: pointer;
+}
+
+.image-upload-remove:hover:not(:disabled) {
+  color: var(--color-danger);
+  background: rgba(185, 92, 85, 0.14);
+}
+
 @media (max-width: 800px) {
   .occurrence-details-header {
     flex-direction: column;

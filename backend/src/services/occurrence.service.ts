@@ -9,21 +9,56 @@ import type {
 } from "../dtos/occurrence.dto.js";
 
 import { AppError } from "../errors/AppError.js";
+import {
+  getOccurrenceImageUrl,
+  isManagedOccurrenceImageKey,
+  isOccurrenceImageKey,
+} from "./storage.service.js";
 
 type UserRole = "SOLICITANTE" | "GESTOR";
+
+async function withPrivateImageUrl<
+  T extends { imageUrl: string | null },
+>(occurrence: T) {
+  if (
+    !occurrence.imageUrl ||
+    !isManagedOccurrenceImageKey(occurrence.imageUrl)
+  ) {
+    return occurrence;
+  }
+
+  return {
+    ...occurrence,
+    imageUrl: await getOccurrenceImageUrl(
+      occurrence.imageUrl,
+    ),
+  };
+}
 
 export async function createOccurrence(
   data: CreateOccurrenceDTO,
   requesterId: number,
 ) {
-  return db.orm.public.Occurrence.create({
+  if (
+    data.imageKey &&
+    !isOccurrenceImageKey(data.imageKey, requesterId)
+  ) {
+    throw new AppError(
+      "Imagem de ocorrência inválida",
+      400,
+    );
+  }
+
+  const occurrence = await db.orm.public.Occurrence.create({
     title: data.title,
     description: data.description,
     category: data.category,
     location: data.location,
-    imageUrl: data.imageUrl,
+    imageUrl: data.imageKey,
     requesterId,
   });
+
+  return withPrivateImageUrl(occurrence);
 }
 
 export async function listOccurrences(
@@ -78,7 +113,9 @@ export async function listOccurrences(
     .all();
 
   return {
-    data: occurrences,
+    data: await Promise.all(
+      occurrences.map(withPrivateImageUrl),
+    ),
     pagination: {
       page,
       limit,
@@ -117,7 +154,7 @@ export async function findOccurrenceById(
     );
   }
 
-  return occurrence;
+  return withPrivateImageUrl(occurrence);
 }
 
 export async function updatePriority(

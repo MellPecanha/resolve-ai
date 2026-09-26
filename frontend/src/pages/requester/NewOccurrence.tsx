@@ -1,12 +1,26 @@
-import { useState } from "react";
-import { ArrowLeft, ImagePlus, MapPin, Send } from "lucide-react";
+import { useRef, useState } from "react";
+import {
+  ArrowLeft,
+  ImagePlus,
+  MapPin,
+  Send,
+  X,
+} from "lucide-react";
 import { useNavigate } from "react-router-dom";
-import type { SyntheticEvent } from "react";
+import type { ChangeEvent, SyntheticEvent } from "react";
 
 import {
   createOccurrence,
   type CreateOccurrenceData,
+  uploadOccurrenceImage,
 } from "../../services/occurrence.service";
+
+const acceptedImageTypes = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+];
+const maxImageSize = 5 * 1024 * 1024;
 
 const categories = [
   "Iluminação",
@@ -27,11 +41,14 @@ function NewOccurrence() {
     description: "",
     category: "",
     location: "",
-    imageUrl: "",
   });
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [imageFile, setImageFile] = useState<File | null>(
+    null,
+  );
+  const imageInputRef = useRef<HTMLInputElement>(null);
 
   function handleChange(
     field: keyof CreateOccurrenceData,
@@ -41,6 +58,41 @@ function NewOccurrence() {
       ...current,
       [field]: value,
     }));
+  }
+
+  function handleImageChange(
+    event: ChangeEvent<HTMLInputElement>,
+  ) {
+    const file = event.target.files?.[0];
+
+    if (!file) {
+      return;
+    }
+
+    if (!acceptedImageTypes.includes(file.type)) {
+      setError("Envie uma imagem JPEG, PNG ou WebP.");
+      event.target.value = "";
+
+      return;
+    }
+
+    if (file.size > maxImageSize) {
+      setError("A imagem deve ter no máximo 5 MB.");
+      event.target.value = "";
+
+      return;
+    }
+
+    setError("");
+    setImageFile(file);
+  }
+
+  function removeImage() {
+    setImageFile(null);
+
+    if (imageInputRef.current) {
+      imageInputRef.current.value = "";
+    }
   }
 
   async function handleSubmit(
@@ -64,12 +116,16 @@ function NewOccurrence() {
     try {
       setLoading(true);
 
+      const imageKey = imageFile
+        ? await uploadOccurrenceImage(imageFile)
+        : undefined;
+
       await createOccurrence({
         title: form.title.trim(),
         description: form.description.trim(),
         category: form.category,
         location: form.location.trim(),
-        imageUrl: form.imageUrl?.trim() || undefined,
+        imageKey,
       });
 
       navigate("/minhas-ocorrencias");
@@ -246,31 +302,49 @@ function NewOccurrence() {
               </div>
 
               <div className="form-field form-field-full">
-                <label htmlFor="imageUrl">
+                <label htmlFor="image">
                   Imagem
                 </label>
 
-                <div className="input-with-icon">
-                  <ImagePlus size={17} />
-
+                <div className="image-upload-field">
                   <input
-                    id="imageUrl"
-                    type="url"
-                    value={form.imageUrl}
-                    onChange={(event) =>
-                      handleChange(
-                        "imageUrl",
-                        event.target.value,
-                      )
-                    }
-                    placeholder="Cole a URL de uma imagem, se necessário"
+                    ref={imageInputRef}
+                    id="image"
+                    className="image-upload-input"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    onChange={handleImageChange}
                     disabled={loading}
                   />
+
+                  <label
+                    className="image-upload-picker"
+                    htmlFor="image"
+                  >
+                    <ImagePlus size={17} />
+                    <span>
+                      {imageFile
+                        ? imageFile.name
+                        : "Selecionar imagem"}
+                    </span>
+                  </label>
+
+                  {imageFile && (
+                    <button
+                      type="button"
+                      className="image-upload-remove"
+                      onClick={removeImage}
+                      disabled={loading}
+                      aria-label="Remover imagem selecionada"
+                      title="Remover imagem"
+                    >
+                      <X size={16} />
+                    </button>
+                  )}
                 </div>
 
                 <span className="field-hint">
-                  Por enquanto, informe uma URL de imagem. O upload de
-                  arquivos será integrado posteriormente.
+                  JPEG, PNG ou WebP, com no máximo 5 MB.
                 </span>
               </div>
             </div>

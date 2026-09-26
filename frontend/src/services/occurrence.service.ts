@@ -14,7 +14,7 @@ export interface CreateOccurrenceData {
   description: string;
   category: string;
   location: string;
-  imageUrl?: string;
+  imageKey?: string;
 }
 
 export interface ListOccurrencesFilters {
@@ -57,6 +57,44 @@ export async function createOccurrence(
   const response = await api.post<Occurrence>("/occurrences", data);
 
   return response.data;
+}
+
+type PresignedUpload = {
+  key: string;
+  url: string;
+  fields: Record<string, string>;
+};
+
+export async function uploadOccurrenceImage(
+  file: File,
+): Promise<string> {
+  const response = await api.post<PresignedUpload>(
+    "/uploads/occurrence-image",
+    {
+      contentType: file.type,
+      size: file.size,
+    },
+  );
+
+  const upload = response.data;
+  const formData = new FormData();
+
+  for (const [name, value] of Object.entries(upload.fields)) {
+    formData.append(name, value);
+  }
+
+  formData.append("file", file);
+
+  const uploadResponse = await fetch(upload.url, {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!uploadResponse.ok) {
+    throw new Error("Não foi possível enviar a imagem.");
+  }
+
+  return upload.key;
 }
 
 export async function getOccurrenceHistory(
