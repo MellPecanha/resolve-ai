@@ -2,6 +2,10 @@
 
 > Plataforma Full Stack para registro, acompanhamento e gestão de ocorrências.
 
+## 🌐 Aplicação em produção
+
+Acesse o Resolve Aí em [resolveai.primellout.com](https://resolveai.primellout.com/).
+
 O **Resolve Aí** é uma aplicação web desenvolvida para centralizar o registro, acompanhamento e gerenciamento de problemas do dia a dia em ambientes como condomínios, empresas, bairros e organizações.
 
 A plataforma permite que usuários registrem ocorrências, acompanhem seu andamento e interajam com os responsáveis pela resolução. Gestores possuem uma visão administrativa para analisar ocorrências, definir prioridades, atribuir responsáveis, atualizar status, registrar soluções e acompanhar indicadores.
